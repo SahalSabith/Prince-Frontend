@@ -18,7 +18,13 @@ import {
 import Profile from './Profile';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, refreshAccessToken, verifyToken } from '../Redux/authSlice';
-
+import CategoryNav from '../Components/CategoryNav.jsx';
+import SearchBar from '../Components/SearchBar.jsx';
+import ProductGrid from '../Components/ProductGrid.jsx';
+import ProductDetail from '../Components/ProductDetail.jsx';
+import Cart from './Cart.jsx';
+import { products } from '../Data/product.js';
+import AddDishPage from '../Pages/AddDishPage.jsx';
 
 const Home = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('Point of Sales');
@@ -26,7 +32,13 @@ const Home = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [currentView, setCurrentView] = useState('main');
   const [initialTab, setInitialTab] = useState('profile');
-  
+  const [selectedCategory, setSelectedCategory] = useState('All Menu');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [currentPage, setCurrentPage] = useState('menu');
+
   const dispatch = useDispatch();
   
   // Use separate selectors to avoid memoization issues
@@ -46,13 +58,10 @@ const Home = () => {
 
   // Verify authentication on component mount - simplified approach
   useEffect(() => {
-    // If we have tokens in localStorage but not authenticated in state, 
-    // it means the tokens might be valid but state isn't updated
     const storedAccessToken = localStorage.getItem('accessToken');
     const storedRefreshToken = localStorage.getItem('refreshToken');
     
     if (storedAccessToken && storedRefreshToken && !isAuthenticated && authStatus !== 'loading') {
-      // Dispatch verification only if we have tokens but aren't authenticated
       dispatch(verifyToken());
     }
   }, [dispatch, isAuthenticated, authStatus]);
@@ -60,19 +69,25 @@ const Home = () => {
   // Auto-refresh token functionality
   useEffect(() => {
     if (isAuthenticated && accessToken) {
-      // Set up token refresh interval (e.g., every 14 minutes for 15-minute tokens)
       const refreshInterval = setInterval(async () => {
         try {
           await dispatch(refreshAccessToken()).unwrap();
         } catch (error) {
           console.error('Auto token refresh failed:', error);
-          // If auto-refresh fails, the user will be logged out automatically
         }
       }, 14 * 60 * 1000); // 14 minutes
 
       return () => clearInterval(refreshInterval);
     }
   }, [isAuthenticated, accessToken, dispatch]);
+
+  const handleAddDishClick = () => {
+    setCurrentPage('add-dish');
+  };
+
+  const handleBackClick = () => {
+    setCurrentPage('menu');
+  };
 
   const handleProfileAction = (action) => {
     if (action === 'profile') {
@@ -90,10 +105,8 @@ const Home = () => {
     try {
       await dispatch(logout()).unwrap();
       console.log('Logged out successfully');
-      // You might want to redirect here: navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
-      // Even if logout fails, the state will be cleared
     }
   };
 
@@ -118,7 +131,7 @@ const Home = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Authentication Required</h2>
             <p className="text-gray-600 mb-4">Please log in to continue</p>
             <button 
-              onClick={() => window.location.href = '/login'} // or use navigate('/login')
+              onClick={() => window.location.href = '/login'}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Go to Login
@@ -128,6 +141,62 @@ const Home = () => {
       </div>
     );
   }
+
+  useEffect(() => {
+    let result = products;
+    
+    // Apply category filter
+    if (selectedCategory !== 'All Menu') {
+      result = result.filter(product => 
+        product.category === selectedCategory
+      );
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(product => 
+        product.name.toLowerCase().includes(query) || 
+        product.category.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredProducts(result);
+  }, [selectedCategory, searchQuery]);
+
+  const handleProductClick = (product) => {
+    setSelectedProduct(product);
+  };
+
+  const handleCloseProductDetail = () => {
+    setSelectedProduct(null);
+  };
+
+  const handleAddToCart = (cartItem) => {
+    setCart([...cart, { ...cartItem, id: `${cartItem.id}-${Date.now()}` }]);
+  };
+
+  const handleUpdateCart = (itemId, newQuantity) => {
+    setCart(cart.map(item => 
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    ));
+  };
+
+  const handleRemoveFromCart = (itemId) => {
+    setCart(cart.filter(item => item.id !== itemId));
+  };
+
+  const handleClearCart = () => {
+    setCart([]);
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -246,47 +315,82 @@ const Home = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Navbar */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 md:px-6">
-          <div className="flex items-center justify-between">
-            {/* Left Section - Menu Button */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
+      <div className="flex-1 flex">
+        {/* Left Section - Product Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Top Navbar */}
+          <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 md:px-6">
+            <div className="flex items-center justify-between">
+              {/* Left Section - Menu Button */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
 
-            {/* Right Section - Date and Time */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 p-4 md:p-6 bg-gray-100 overflow-auto">
-          {currentView === 'main' && (
-            <div className="bg-white rounded-lg shadow-sm h-full min-h-96 flex items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-800 mb-2">POS Interface</h3>
-                <p className="text-gray-500">Main content area - Product grid would go here</p>
-                <div className="mt-4 text-sm text-gray-400">
-                  Welcome, {user?.name || user?.email || 'User'}!
+              {/* Center - Date and Time */}
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
+
+              {/* Right Section - Status */}
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Open Order</span>
+              </div>
             </div>
-          )}
-          {currentView === 'profile' && <Profile setCurrentView={setCurrentView} initialTab={initialTab} />}
-        </main>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 p-4 md:p-6 bg-gray-50 overflow-auto">
+            {currentPage === 'menu' ? (
+              <>
+                <CategoryNav 
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={handleCategorySelect}
+                  onAddDishClick={handleAddDishClick} 
+                />
+                
+                <SearchBar 
+                  onSearch={handleSearch} 
+                  searchQuery={searchQuery}
+                />
+                
+                <ProductGrid 
+                  products={filteredProducts} 
+                  onProductClick={handleProductClick} 
+                />
+              </>
+            ) : (
+              <AddDishPage onBackClick={handleBackClick} />
+            )}
+          </main>
+        </div>
+
+        {/* Right Section - Cart */}
+        <Cart 
+          cart={cart}
+          onUpdateCart={handleUpdateCart}
+          onRemoveFromCart={handleRemoveFromCart}
+          onClearCart={handleClearCart}
+        />
+
+        {/* Product Detail Modal */}
+        {selectedProduct && (
+          <ProductDetail 
+            product={selectedProduct}
+            onClose={handleCloseProductDetail}
+            onAddToCart={handleAddToCart}
+          />
+        )}
       </div>
     </div>
   );

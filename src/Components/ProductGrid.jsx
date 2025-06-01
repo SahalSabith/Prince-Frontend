@@ -2,9 +2,12 @@ import React from 'react';
 import ProductCard from './ProductCard';
 
 const ProductGrid = ({ products, onProductClick }) => {
+  // Add null/undefined check and ensure products is an array
+  const safeProducts = Array.isArray(products) ? products : [];
+
   return (
     <div className="w-full">
-      {products.length === 0 ? (
+      {safeProducts.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,9 +19,9 @@ const ProductGrid = ({ products, onProductClick }) => {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {products.map(product => (
+          {safeProducts.map(product => (
             <ProductCard
-              key={product.id}
+              key={product.id || product._id} // Handle both id and _id cases
               product={product}
               onClick={onProductClick}
             />

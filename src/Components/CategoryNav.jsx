@@ -1,19 +1,22 @@
-import React from 'react';
-import { Plus } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Plus, Grid3X3 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCategories } from '../Redux/productSlice';
 
 const CategoryNav = ({ 
   selectedCategory, 
   onCategorySelect, 
   onAddDishClick,
-  categories = [
-    { id: 1, name: 'All Menu', icon: '☰', count: 110 },
-    { id: 2, name: 'Breads', icon: '🍞', count: 20 },
-    { id: 3, name: 'Cakes', icon: '🎂', count: 20 },
-    { id: 4, name: 'Donuts', icon: '🍩', count: 20 },
-    { id: 5, name: 'Pastries', icon: '🥐', count: 20 },
-    { id: 6, name: 'Sandwich', icon: '🥪', count: 20 }
-  ]
 }) => {
+  const dispatch = useDispatch();
+  const { categories, dishes, loading, error } = useSelector((state) => state.product);
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch])
+
+  // Calculate total items count for "All" category
+  const totalItemsCount = dishes ? dishes.length : 0;
 
   const CategoryIcon = ({ category, isSelected }) => {
     return (
@@ -30,6 +33,30 @@ const CategoryNav = ({
   return (
     <div className="w-full mb-6">
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+        {/* All Category - Default */}
+        <div 
+          onClick={() => onCategorySelect('All Menu')}
+          className={`flex flex-col items-center min-w-[88px] p-4 rounded-2xl cursor-pointer transition-all duration-200 ${
+            selectedCategory === 'All Menu' 
+              ? "bg-blue-50 border-2 border-blue-200 shadow-sm" 
+              : "bg-white border-2 border-transparent hover:bg-gray-50 shadow-sm"
+          }`}
+        >
+          <CategoryIcon 
+            category={{ icon: <Grid3X3 size={24} /> }} 
+            isSelected={selectedCategory === 'All Menu'}
+          />
+          <div className="mt-3 text-center">
+            <p className={`text-sm font-semibold ${
+              selectedCategory === 'All Menu' ? 'text-blue-700' : 'text-gray-800'
+            }`}>
+              All Menu
+            </p>
+            <p className="text-xs text-gray-500 mt-1">{totalItemsCount} Items</p>
+          </div>
+        </div>
+
+        {/* Dynamic Categories */}
         {categories.map((category) => (
           <div 
             key={category.id}

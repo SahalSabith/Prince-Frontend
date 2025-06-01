@@ -39,12 +39,32 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
     return colors[category] || 'text-gray-600';
   };
 
+  // Handle image URL - prioritize dish_image from backend
+  const getImageUrl = () => {
+    if (product.dish_image) {
+      // If it's a full URL, use as is
+      if (product.dish_image.startsWith('http')) {
+        return product.dish_image;
+      }
+      // If it's a relative path, prepend base URL
+      return `http://127.0.0.1:8000${product.dish_image}`;
+    }
+    // Fallback to other possible image fields
+    return product.image_url || product.image || '/api/placeholder/300/300';
+  };
+
+  // Ensure price is a number
+  const price = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
+  
+  // Category should now be a string after transformation in Redux
+  const categoryDisplay = product.category || 'Uncategorized';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 bg-white bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 border border-gray-200">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800">Detail Menu</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Dish Details</h2>
           <button 
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -59,23 +79,69 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
           <div className="mb-4 flex justify-center">
             <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden p-3 flex items-center justify-center">
               <img 
-                src={product.image} 
-                alt={product.name} 
+                src={getImageUrl()} 
+                alt={product.name || 'Dish'} 
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  // Fallback to a simple colored div if image fails
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
               />
+              {/* Fallback div for when image fails */}
+              <div 
+                className="absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-400 text-sm"
+                style={{ display: 'none' }}
+              >
+                No Image
+              </div>
             </div>
           </div>
 
           {/* Product Info */}
           <div className="text-center mb-4">
-            <span className={`inline-block text-sm font-medium mb-2 ${getCategoryColor(product.category)}`}>
-              {product.category}
+            <span className={`inline-block text-sm font-medium mb-2 ${getCategoryColor(categoryDisplay)}`}>
+              {categoryDisplay}
             </span>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {product.name || 'Unnamed Dish'}
+            </h3>
+            
+            {/* Description with fallback */}
             <p className="text-gray-600 text-sm leading-relaxed mb-3 text-left">
-              {product.description || "Premium butter croissant with a crispy pastry crust and soft inside will melt away on your mouth!"}
+              {product.description || product.dish_description || "Delicious dish prepared with finest ingredients and served fresh!"}
             </p>
-            <p className="text-2xl font-bold text-blue-600">${product.price.toFixed(2)}</p>
+            
+            {/* Additional dish details if available */}
+            {product.ingredients && (
+              <div className="mb-3 text-left">
+                <p className="text-xs font-medium text-gray-700 mb-1">Ingredients:</p>
+                <p className="text-xs text-gray-600">{product.ingredients}</p>
+              </div>
+            )}
+            
+            {product.cooking_time && (
+              <div className="mb-3 text-left">
+                <p className="text-xs font-medium text-gray-700 mb-1">Cooking Time:</p>
+                <p className="text-xs text-gray-600">{product.cooking_time} minutes</p>
+              </div>
+            )}
+            
+            {product.calories && (
+              <div className="mb-3 text-left">
+                <p className="text-xs font-medium text-gray-700 mb-1">Calories:</p>
+                <p className="text-xs text-gray-600">{product.calories} kcal</p>
+              </div>
+            )}
+            
+            {product.spice_level && (
+              <div className="mb-3 text-left">
+                <p className="text-xs font-medium text-gray-700 mb-1">Spice Level:</p>
+                <p className="text-xs text-gray-600">{product.spice_level}</p>
+              </div>
+            )}
+            
+            <p className="text-2xl font-bold text-blue-600">${price.toFixed(2)}</p>
           </div>
 
           {/* Notes */}
@@ -111,7 +177,7 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
             onClick={handleAddToCart}
             className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
           >
-            Add to Cart (${(product.price * quantity).toFixed(2)})
+            Add to Cart (${(price * quantity).toFixed(2)})
           </button>
         </div>
       </div>
@@ -119,46 +185,4 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
   );
 };
 
-// Demo component to show the ProductDetail in action
-const ProductDetailDemo = () => {
-  const [showDetail, setShowDetail] = useState(true);
-  
-  const sampleProduct = {
-    id: 1,
-    name: "Buttermelt Croissant",
-    category: "Pastry",
-    price: 4.00,
-    image: "https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=300&h=300&fit=crop&crop=center",
-    description: "Premium butter croissant with a crispy pastry crust and soft inside will melt away on your mouth!"
-  };
-
-  const handleAddToCart = (item) => {
-    console.log('Added to cart:', item);
-    setShowDetail(false);
-  };
-
-  if (!showDetail) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <button 
-          onClick={() => setShowDetail(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Show Product Detail
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-screen bg-gray-100">
-      <ProductDetail 
-        product={sampleProduct}
-        onClose={() => setShowDetail(false)}
-        onAddToCart={handleAddToCart}
-      />
-    </div>
-  );
-};
-
-export default ProductDetailDemo;
+export default ProductDetail;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart3, 
   Activity, 
@@ -23,8 +23,8 @@ import SearchBar from '../Components/SearchBar.jsx';
 import ProductGrid from '../Components/ProductGrid.jsx';
 import ProductDetail from '../Components/ProductDetail.jsx';
 import Cart from './Cart.jsx';
-import { products } from '../Data/product.js';
 import AddDishPage from '../Pages/AddDishPage.jsx';
+import { fetchDish, fetchCategories } from '../Redux/productSlice';
 
 const Home = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('Point of Sales');
@@ -34,14 +34,15 @@ const Home = () => {
   const [initialTab, setInitialTab] = useState('profile');
   const [selectedCategory, setSelectedCategory] = useState('All Menu');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState(products);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cart, setCart] = useState([]);
   const [currentPage, setCurrentPage] = useState('menu');
+  const [filteredProducts, setFilteredProducts] = useState([]);
 
   const dispatch = useDispatch();
-  
-  // Use separate selectors to avoid memoization issues
+  const hasFetchedData = useRef(false); // Prevent multiple API calls
+
+  const { dishes, categories, loading, error } = useSelector((state) => state.product);
   const authStatus = useSelector((state) => state.auth?.status || 'idle');
   const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated || false);
   const user = useSelector((state) => state.auth?.user);
@@ -66,6 +67,16 @@ const Home = () => {
     }
   }, [dispatch, isAuthenticated, authStatus]);
 
+  // Fetch data only once when authenticated
+  useEffect(() => {
+    if (isAuthenticated && !hasFetchedData.current) {
+      console.log('Fetching dishes and categories...');
+      dispatch(fetchDish());
+      dispatch(fetchCategories());
+      hasFetchedData.current = true;
+    }
+  }, [dispatch, isAuthenticated]);
+
   // Auto-refresh token functionality
   useEffect(() => {
     if (isAuthenticated && accessToken) {
@@ -81,12 +92,37 @@ const Home = () => {
     }
   }, [isAuthenticated, accessToken, dispatch]);
 
+  // Filter products based on category and search
+  useEffect(() => {
+    let result = dishes || [];
+    
+    // Apply category filter
+    if (selectedCategory !== 'All Menu') {
+      result = result.filter(product => 
+        product.category === selectedCategory
+      );
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(product => 
+        product.name?.toLowerCase().includes(query) || 
+        product.category?.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredProducts(result);
+  }, [dishes, selectedCategory, searchQuery]);
+
   const handleAddDishClick = () => {
     setCurrentPage('add-dish');
   };
 
   const handleBackClick = () => {
     setCurrentPage('menu');
+    // Refresh data after adding new dish
+    dispatch(fetchDish());
   };
 
   const handleProfileAction = (action) => {
@@ -104,6 +140,7 @@ const Home = () => {
   const handleLogout = async () => {
     try {
       await dispatch(logout()).unwrap();
+      hasFetchedData.current = false; // Reset flag for next login
       console.log('Logged out successfully');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -141,28 +178,6 @@ const Home = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    let result = products;
-    
-    // Apply category filter
-    if (selectedCategory !== 'All Menu') {
-      result = result.filter(product => 
-        product.category === selectedCategory
-      );
-    }
-    
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        product.category.toLowerCase().includes(query)
-      );
-    }
-    
-    setFilteredProducts(result);
-  }, [selectedCategory, searchQuery]);
 
   const handleProductClick = (product) => {
     setSelectedProduct(product);
@@ -364,10 +379,29 @@ const Home = () => {
                   searchQuery={searchQuery}
                 />
                 
-                <ProductGrid 
-                  products={filteredProducts} 
-                  onProductClick={handleProductClick} 
-                />
+                {loading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-12">
+                    <p className="text-red-500">Error loading dishes: {error}</p>
+                    <button 
+                      onClick={() => {
+                        hasFetchedData.current = false;
+                        dispatch(fetchDish());
+                      }}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : (
+                  <ProductGrid 
+                    products={filteredProducts} 
+                    onProductClick={handleProductClick} 
+                  />
+                )}
               </>
             ) : (
               <AddDishPage onBackClick={handleBackClick} />

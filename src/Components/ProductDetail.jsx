@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { X, Minus, Plus } from 'lucide-react';
+import { createCartItem } from '../redux/orderSlice'; // Adjust import path as needed
 
-const ProductDetail = ({ product, onClose, onAddToCart }) => {
+const ProductDetail = ({ product, onClose }) => {
+  const dispatch = useDispatch();
+  const { loading, success, error } = useSelector((state) => state.order);
+  
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
 
@@ -15,15 +20,19 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
     setQuantity(quantity + 1);
   };
 
-  const handleAddToCart = () => {
-    const cartItem = {
-      ...product,
-      quantity,
-      notes,
-      cartId: Date.now()
+  const handleAddToCart = async () => {
+    const cartData = {
+      dish: product.id,
+      quantity: quantity,
+      notes: notes
     };
-    onAddToCart(cartItem);
-    onClose();
+    
+    try {
+      await dispatch(createCartItem(cartData)).unwrap();
+      onClose();
+    } catch (err) {
+      console.error('Failed to add item to cart:', err);
+    }
   };
 
   const getCategoryColor = (category) => {
@@ -56,8 +65,13 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
   // Ensure price is a number
   const price = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
   
-  // Category should now be a string after transformation in Redux
-  const categoryDisplay = product.category || 'Uncategorized';
+  // Handle both dish_name (from backend) and name (if transformed)
+  const dishName = product.dish_name || product.name || 'Unnamed Dish';
+  
+  // Category handling - could be object or string
+  const categoryDisplay = typeof product.category === 'object' 
+    ? product.category?.name || 'Uncategorized'
+    : product.category || 'Uncategorized';
 
   return (
     <div className="fixed inset-0 bg-white bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -77,10 +91,10 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
         <div className="p-4">
           {/* Product Image - Smaller and centered */}
           <div className="mb-4 flex justify-center">
-            <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden p-3 flex items-center justify-center">
+            <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden p-3 flex items-center justify-center relative">
               <img 
                 src={getImageUrl()} 
-                alt={product.name || 'Dish'} 
+                alt={dishName} 
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   // Fallback to a simple colored div if image fails
@@ -104,12 +118,12 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
               {categoryDisplay}
             </span>
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {product.name || 'Unnamed Dish'}
+              {dishName}
             </h3>
             
             {/* Description with fallback */}
             <p className="text-gray-600 text-sm leading-relaxed mb-3 text-left">
-              {product.description || product.dish_description || "Delicious dish prepared with finest ingredients and served fresh!"}
+              {product.description || "Delicious dish prepared with finest ingredients and served fresh!"}
             </p>
             
             {/* Additional dish details if available */}
@@ -159,25 +173,35 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
           <div className="flex items-center justify-center mb-6">
             <button 
               onClick={handleDecrement}
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+              disabled={loading}
+              className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <Minus className="w-4 h-4" />
             </button>
             <span className="text-xl font-bold text-gray-900 mx-8 min-w-[2rem] text-center">{quantity}</span>
             <button 
               onClick={handleIncrement}
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+              disabled={loading}
+              className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+              {typeof error === 'string' ? error : 'Failed to add item to cart'}
+            </div>
+          )}
+
           {/* Add to Cart Button */}
           <button 
             onClick={handleAddToCart}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Add to Cart (${(price * quantity).toFixed(2)})
+            {loading ? 'Adding...' : `Add to Cart ($${(price * quantity).toFixed(2)})`}
           </button>
         </div>
       </div>

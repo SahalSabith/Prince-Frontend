@@ -89,9 +89,9 @@ const PointOfSales = () => {
   return (
     <div className="flex h-full">
       {/* Left Section - Product Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 bg-gray-50 overflow-auto">
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Fixed Header Section */}
+        <div className="flex-shrink-0 p-4 md:p-6 bg-gray-50">
           {currentPage === 'menu' ? (
             <>
               <CategoryNav 
@@ -104,7 +104,14 @@ const PointOfSales = () => {
                 onSearch={handleSearch} 
                 searchQuery={searchQuery}
               />
-              
+            </>
+          ) : null}
+        </div>
+
+        {/* Scrollable Content Section */}
+        <div className="flex-1 px-4 md:px-6 bg-gray-50 overflow-y-auto">
+          {currentPage === 'menu' ? (
+            <>
               {loading ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -129,7 +136,7 @@ const PointOfSales = () => {
           ) : (
             <AddDishPage onBackClick={handleBackClick} />
           )}
-        </main>
+        </div>
       </div>
 
       {/* Right Section - Cart */}

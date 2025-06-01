@@ -167,7 +167,7 @@ const Home = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
       <Sidebar
         sidebarOpen={sidebarOpen}
@@ -178,9 +178,9 @@ const Home = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Navbar */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 md:px-6">
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Top Navbar - Fixed */}
+        <header className="flex-shrink-0 bg-white shadow-sm border-b border-gray-200 px-4 py-3 md:px-6">
           <div className="flex items-center justify-between">
             {/* Left Section - Menu Button */}
             <button
@@ -217,8 +217,10 @@ const Home = () => {
           </div>
         </header>
 
-        {/* Page Content */}
-        {renderCurrentPage()}
+        {/* Page Content - Takes remaining height */}
+        <div className="flex-1 min-h-0">
+          {renderCurrentPage()}
+        </div>
       </div>
     </div>
   );

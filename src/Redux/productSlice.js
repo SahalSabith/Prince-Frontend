@@ -143,7 +143,6 @@ const productSlice = createSlice({
         state.error = action.payload;
         state.success = false;
       })
-      
       // Fetch categories cases
       .addCase(fetchCategories.pending, (state) => {
         state.loading = true;

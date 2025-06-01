@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "build-electron": "npm run build && electron-builder"
+    "build-electron": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
@@ -33,6 +34,7 @@
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
     "electron": "^36.3.2",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
@@ -41,5 +43,17 @@
     "tailwindcss": "^4.1.8",
     "vite": "^6.3.5",
     "wait-on": "^8.0.3"
+  },
+  "build": {
+  "appId": "com.sahal.prince",
+  "productName": "Prince POS",
+  "files": [
+    "build/**/*",
+    "public/electron.js"
+  ],
+  "directories": {
+    "buildResources": "assets"
   }
+}
+
 }

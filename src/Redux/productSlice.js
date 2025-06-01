@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
+// const base_url = "https://sahalsabith.pythonanywhere.com/api/";
 const base_url = "http://127.0.0.1:8000/api/";
 
 const getAuthToken = () => {

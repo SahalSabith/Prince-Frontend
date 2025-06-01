@@ -8,7 +8,7 @@ import Profile from './Profile';
 import { useDispatch, useSelector } from 'react-redux';
 import { refreshAccessToken, verifyToken } from '../Redux/authSlice';
 import { fetchDish, fetchCategories } from '../Redux/productSlice';
-import Sidebar from '../Components/sidebar';
+import Sidebar from '../Components/SideBar';
 import PointOfSales from './PointOfSales';
 
 const Home = () => {

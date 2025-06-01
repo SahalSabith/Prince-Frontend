@@ -45,15 +45,24 @@
     "wait-on": "^8.0.3"
   },
   "build": {
-  "appId": "com.sahal.prince",
-  "productName": "Prince POS",
-  "files": [
-    "build/**/*",
-    "public/electron.js"
-  ],
-  "directories": {
-    "buildResources": "assets"
-  }
+    "appId": "com.sahal.prince",
+    "productName": "Prince POS",
+    "files": [
+      "dist/**/*",
+      "electron/main.cjs"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "mac": {
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"]
+    }
 }
 
 }

@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const base_url = "https://sahalsabith.pythonanywhere.com/api/";
-// const base_url = "http://127.0.0.1:8000/api/";
+// const base_url = "https://sahalsabith.pythonanywhere.com/api/";
+const base_url = "http://127.0.0.1:8000/api/";
 
 const getAuthToken = () => {
     return localStorage.getItem('accessToken');
@@ -111,6 +111,8 @@ export const deleteCartItem = createAsyncThunk(
             await axios.delete(`${base_url}cart/items/${itemId}/`, getAuthConfig());
             return itemId;
         } catch (error) {
+            console.log(error.response?.data || error.message);
+            
             return rejectWithValue(error.response?.data || error.message);
         }
     }
@@ -153,6 +155,26 @@ export const fetchOrderDetail = createAsyncThunk(
     }
 );
 
+// Print Order API call
+export const printOrder = createAsyncThunk(
+    'order/printOrder',
+    async ({ orderId, printType = 'receipt', printerName = null }, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(
+                `${base_url}orders/${orderId}/print/`, 
+                { 
+                    print_type: printType,
+                    printer_name: printerName 
+                }, 
+                getAuthConfig()
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
 const getInitialState = () => {
     return {
         // Cart state
@@ -162,6 +184,12 @@ const getInitialState = () => {
         // Orders state
         orders: [],
         currentOrder: null,
+        
+        // Print state
+        printResults: [],
+        printLoading: false,
+        printError: null,
+        printSuccess: false,
         
         // Loading states
         loading: false,
@@ -191,12 +219,14 @@ const orderSlice = createSlice({
             state.error = null;
             state.cartError = null;
             state.orderError = null;
+            state.printError = null;
             state.message = null;
         },
         resetSuccess: (state) => {
             state.success = false;
             state.cartSuccess = false;
             state.orderSuccess = false;
+            state.printSuccess = false;
         },
         clearCart: (state) => {
             state.cart = null;
@@ -205,6 +235,9 @@ const orderSlice = createSlice({
         clearOrders: (state) => {
             state.orders = [];
             state.currentOrder = null;
+        },
+        clearPrintResults: (state) => {
+            state.printResults = [];
         },
     },
     extraReducers: (builder) => {
@@ -367,6 +400,11 @@ const orderSlice = createSlice({
                 state.orderSuccess = true;
                 state.message = action.payload.message;
                 
+                // Store print results if available
+                if (action.payload.print_results) {
+                    state.printResults = action.payload.print_results;
+                }
+                
                 // Add new order to orders array
                 state.orders.unshift(action.payload.order);
                 
@@ -406,6 +444,28 @@ const orderSlice = createSlice({
             .addCase(fetchOrderDetail.rejected, (state, action) => {
                 state.orderLoading = false;
                 state.orderError = action.payload;
+            })
+
+            // Print Order
+            .addCase(printOrder.pending, (state) => {
+                state.printLoading = true;
+                state.printError = null;
+                state.printSuccess = false;
+            })
+            .addCase(printOrder.fulfilled, (state, action) => {
+                state.printLoading = false;
+                state.printSuccess = true;
+                state.message = action.payload.message;
+                
+                // Store print result
+                if (action.payload.result) {
+                    state.printResults = [action.payload.result];
+                }
+            })
+            .addCase(printOrder.rejected, (state, action) => {
+                state.printLoading = false;
+                state.printError = action.payload;
+                state.printSuccess = false;
             });
     },
 });
@@ -414,11 +474,13 @@ export const {
     clearMessages, 
     resetSuccess, 
     clearCart: clearCartState, 
-    clearOrders 
+    clearOrders,
+    clearPrintResults
 } = orderSlice.actions;
 
 export default orderSlice.reducer;
 
+// Selectors
 export const selectCart = (state) => state.order.cart;
 export const selectCartItems = (state) => state.order.cartItems;
 export const selectOrders = (state) => state.order.orders;
@@ -433,3 +495,7 @@ export const selectMessage = (state) => state.order.message;
 export const selectOrderSuccess = (state) => state.order.orderSuccess;
 export const selectCartSuccess = (state) => state.order.cartSuccess;
 export const selectSuccess = (state) => state.order.success;
+export const selectPrintResults = (state) => state.order.printResults;
+export const selectPrintLoading = (state) => state.order.printLoading;
+export const selectPrintError = (state) => state.order.printError;
+export const selectPrintSuccess = (state) => state.order.printSuccess;

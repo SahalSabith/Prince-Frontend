@@ -8,7 +8,7 @@ const ProductDetail = ({ product, onClose }) => {
   const { loading, success, error } = useSelector((state) => state.order);
   
   const [quantity, setQuantity] = useState(1);
-  const [notes, setNotes] = useState('');
+  const [note, setnote] = useState('');
 
   const handleDecrement = () => {
     if (quantity > 1) {
@@ -24,11 +24,12 @@ const ProductDetail = ({ product, onClose }) => {
     const cartData = {
       dish: product.id,
       quantity: quantity,
-      notes: notes
+      note: note
     };
     
     try {
       await dispatch(createCartItem(cartData)).unwrap();
+      console.log(cartData)
       onClose();
     } catch (err) {
       console.error('Failed to add item to cart:', err);
@@ -56,7 +57,7 @@ const ProductDetail = ({ product, onClose }) => {
         return product.dish_image;
       }
       // If it's a relative path, prepend base URL
-      return `http://127.0.0.1:8000${product.dish_image}`;
+      return `http://192.168.29.42:8000${product.dish_image}`;
     }
     // Fallback to other possible image fields
     return product.image_url || product.image || '/api/placeholder/300/300';
@@ -158,12 +159,12 @@ const ProductDetail = ({ product, onClose }) => {
             <p className="text-2xl font-bold text-blue-600">${price.toFixed(2)}</p>
           </div>
 
-          {/* Notes */}
+          {/* note */}
           <div className="mb-4">
             <textarea
-              placeholder="Add notes to your order..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add note to your order..."
+              value={note}
+              onChange={(e) => setnote(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm bg-gray-50"
               rows="2"
             />

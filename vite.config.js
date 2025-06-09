@@ -9,6 +9,6 @@ export default defineConfig({
   },
   server: {
     host: true,
-    allowedHosts: ['f141-2405-201-f02f-c035-35a3-effc-8bd8-836c.ngrok-free.app']
+    allowedHosts: ['prince-bakery.local'],
   }
 })

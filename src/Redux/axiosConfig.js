@@ -3,8 +3,9 @@ import { store } from './store'
 import { refreshAccessToken, clearAuthState } from './authSlice';
 import { useNavigate } from 'react-router-dom'
 
-// const base_url = "https://sahalsabith.pythonanywhere.com/api/";
-const base_url = "http://192.168.29.42:8000/api/";
+const base_url = "http://192.168.29.56:8000/api/"
+// const base_url = "http://127.0.0.1:8000/api/";
+
 const navigate = useNavigate()
 
 const apiClient = axios.create({

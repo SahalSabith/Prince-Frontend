@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// const base_url = "https://sahalsabith.pythonanywhere.com/api/";
-const base_url = "http://192.168.29.42:8000/api/";
+const base_url = "http://192.168.29.56:8000/api/"
+// const base_url = "http://127.0.0.1:8000/api/";
 
 // Helper functions for localStorage
 const getTokenFromStorage = (key) => {

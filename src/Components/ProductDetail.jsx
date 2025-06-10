@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { X, Minus, Plus } from 'lucide-react';
-import { createCartItem } from '../redux/orderSlice.js';
+import { createCartItem } from '../Redux/orderSlice'
 
 const ProductDetail = ({ product, onClose }) => {
   const dispatch = useDispatch();

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { signupUser,loginUser } from '../Redux/Slices/AccountSlice';
+import { useDispatch } from 'react-redux';
+import { signupUser, loginUser } from '../Redux/Slices/AccountSlice';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isSignup, setIsSignup] = useState(true);
+  const [isSignup, setIsSignup] = useState(false); // Default: login page
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState(['', '', '', '']);
-  const navigate = useNavigate()
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handlePasswordChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
@@ -21,14 +23,31 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+
+    const userData = {
+      name,
+      phone,
+      password: password.join(''),
+    };
+
+    try {
+      const res = isSignup
+        ? await dispatch(signupUser(userData)).unwrap()
+        : await dispatch(loginUser({ phone, password: userData.password })).unwrap();
+
+      // On success, redirect to home
+      navigate('/');
+    } catch (err) {
+      console.log({ phone, password: userData.password })
+      console.error(err);
+      setError(err);
+    } finally {
       setLoading(false);
-      alert(isSignup ? 'Account created successfully!' : 'Login successful!');
-    }, 2000);
+    }
   };
 
   return (
@@ -54,11 +73,11 @@ export default function Login() {
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 mb-6 rounded-xl">
-              {error.detail || 'Something went wrong'}
+              {error.detail || error.message || 'Something went wrong'}
             </div>
           )}
 
-          <div onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {isSignup && (
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700">Full Name</label>
@@ -103,8 +122,7 @@ export default function Login() {
             </div>
 
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 sm:py-4 rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-base sm:text-lg"
               disabled={loading}
             >
@@ -117,7 +135,7 @@ export default function Login() {
                 isSignup ? 'Create Account' : 'Sign In'
               )}
             </button>
-          </div>
+          </form>
 
           <div className="mt-6 sm:mt-8 text-center">
             <p className="text-sm sm:text-base text-gray-600">
@@ -125,7 +143,10 @@ export default function Login() {
               <button
                 type="button"
                 className="text-amber-600 hover:text-orange-600 font-semibold hover:underline transition-colors duration-200"
-                onClick={() => setIsSignup(!isSignup)}
+                onClick={() => {
+                  setError(null);
+                  setIsSignup(!isSignup);
+                }}
               >
                 {isSignup ? 'Sign In' : 'Create Account'}
               </button>

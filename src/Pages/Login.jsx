@@ -1,260 +1,146 @@
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom'
-import { login,signup } from '../Redux/authSlice';
+import React, { useState } from 'react';
+import { signupUser,loginUser } from '../Redux/Slices/AccountSlice';
+import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
-
-  const dispatch = useDispatch();
+export default function Login() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isSignup, setIsSignup] = useState(true);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState(['', '', '', '']);
   const navigate = useNavigate()
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    name: '',
-    mobile: '',
-    password: ['', '', '', '']
-  });
-  const [toast, setToast] = useState({ show: false, message: '', type: '' });
-
-  const showToast = (message, type = 'error') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: '' }), 4000);
-  };
 
   const handlePasswordChange = (index, value) => {
-    if (value.length <= 1 && /^\d*$/.test(value)) {
-      const newPassword = [...formData.password];
-      newPassword[index] = value;
-      setFormData({ ...formData, password: newPassword });
-      
-      // Auto focus next input
-      if (value && index < 3) {
-        const nextInput = document.getElementById(`pin-${index + 1}`);
-        if (nextInput) nextInput.focus();
-      }
-    }
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && !formData.password[index] && index > 0) {
-      const prevInput = document.getElementById(`pin-${index - 1}`);
-      if (prevInput) prevInput.focus();
+    if (!/^\d?$/.test(value)) return;
+    const newPassword = [...password];
+    newPassword[index] = value;
+    setPassword(newPassword);
+    if (value && index < 3) {
+      document.getElementById(`pass-${index + 1}`).focus();
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    const { name, mobile, password } = formData;
-
-    // Validation
-    if (!isLogin && !name.trim()) {
-      showToast('Please enter your name');
-      return;
-    }
-
-    if (!mobile.trim()) {
-      showToast('Please enter your phone number');
-      return;
-    }
-
-    if (mobile.length < 10) {
-      showToast('Please enter a valid phone number');
-      return;
-    }
-
-    const passwordStr = password.join('');
-    if (passwordStr.length !== 4) {
-      showToast('Please enter a 4-digit password');
-      return;
-    }
-
-    const passwordInt = parseInt(passwordStr);
-
-    if (isLogin) {
-      dispatch(login({ mobile, password: passwordInt }))
-        .unwrap()
-        .then(() => {
-          showToast('Login successful!', 'success');
-          navigate('/')
-        })
-        .catch((err) => {
-          showToast(`Login failed: ${err.error}`, 'error');
-        });
-    } else {
-      dispatch(signup({ name, mobile, password: passwordInt }))
-        .unwrap()
-        .then(() => {
-          showToast('Account created successfully!', 'success');
-          navigate('/')
-        })
-        .catch((err) => {
-          showToast(`Registration failed: ${err.mobile}`, 'error');
-          
-        });
-    }
-  };
-
-
-  const toggleForm = () => {
-    setIsLogin(!isLogin);
-    setFormData({
-      name: '',
-      mobile: '',
-      password: ['', '', '', '']
-    });
-  };
-
-  const resetPassword = () => {
-    setFormData({ ...formData, password: ['', '', '', ''] });
-    document.getElementById('pin-0')?.focus();
+    setLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setLoading(false);
+      alert(isSignup ? 'Account created successfully!' : 'Login successful!');
+    }, 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-    {/* Toast Notification */}
-    <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ${
-        toast.show ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-    }`}>
-        <div className={`px-6 py-3 rounded-lg shadow-lg text-white font-medium ${
-        toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        }`}>
-        {toast.message}
-        </div>
-    </div>
-
-    <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2 tracking-wider">
-            Prince
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex flex-col items-center justify-center px-4 py-8">
+      {/* Prince Bakery Header */}
+      <div className="text-center mb-8 sm:mb-12">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 mb-2 sm:mb-4">
+          Prince Bakery
         </h1>
-        <div className="w-16 h-1 bg-gradient-to-r from-purple-400 to-blue-400 mx-auto rounded-full"></div>
+        <div className="flex items-center justify-center gap-2 text-amber-700">
+          <div className="w-8 h-0.5 bg-gradient-to-r from-transparent to-amber-400"></div>
+          <span className="text-sm sm:text-base font-medium">Fresh • Delicious • Premium</span>
+          <div className="w-8 h-0.5 bg-gradient-to-l from-transparent to-amber-400"></div>
         </div>
+      </div>
 
-        {/* Main Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20">
-        {/* Toggle Buttons */}
-        <div className="flex bg-white/10 rounded-xl p-1 mb-8">
-            <button
-            onClick={() => !isLogin && toggleForm()}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 ${
-                isLogin 
-                ? 'bg-white text-purple-900 shadow-lg' 
-                : 'text-white/70 hover:text-white'
-            }`}
-            >
-            Login
-            </button>
-            <button
-            onClick={() => isLogin && toggleForm()}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 ${
-                !isLogin 
-                ? 'bg-white text-purple-900 shadow-lg' 
-                : 'text-white/70 hover:text-white'
-            }`}
-            >
-            Sign Up
-            </button>
-        </div>
+      {/* Login Form Container */}
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg">
+        <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-3xl p-6 sm:p-8 md:p-10 border border-white/20">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 text-gray-800">
+            {isSignup ? 'Create Account' : 'Welcome Back'}
+          </h2>
 
-        {/* Form */}
-        <div className="space-y-6">
-            {/* Name Field (Sign Up Only) */}
-            <div className={`transition-all duration-500 overflow-hidden ${
-            isLogin ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'
-            }`}>
-            <div className="pb-6">
-                <label className="block text-white/80 text-sm font-medium mb-2">
-                Full Name
-                </label>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 mb-6 rounded-xl">
+              {error.detail || 'Something went wrong'}
+            </div>
+          )}
+
+          <div onSubmit={handleSubmit} className="space-y-6">
+            {isSignup && (
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">Full Name</label>
                 <input
+                  type="text"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Phone Number</label>
+              <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300"
-                placeholder="Enter your full name"
-                />
-            </div>
-            </div>
-
-            {/* Phone Field */}
-            <div>
-            <label className="block text-white/80 text-sm font-medium mb-2">
-                Phone Number
-            </label>
-            <input
-                type="tel"
-                value={formData.mobile}
-                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300"
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
-            />
+                required
+              />
             </div>
 
-            {/* Password Field (PIN Style) */}
             <div>
-            <div className="flex justify-between items-center mb-2">
-                <label className="text-white/80 text-sm font-medium">
-                Password (4 digits)
-                </label>
-                <button
-                type="button"
-                onClick={resetPassword}
-                className="text-purple-300 text-sm hover:text-purple-200 transition-colors"
-                >
-                Clear
-                </button>
-            </div>
-            <div className="flex justify-center space-x-4">
-                {formData.password.map((digit, index) => (
-                <input
-                    key={index}
-                    id={`pin-${index}`}
-                    type="password"
-                    value={digit}
-                    onChange={(e) => handlePasswordChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, index)}
-                    className="w-14 h-14 text-center text-xl font-bold bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300"
+              <label className="block text-sm font-semibold mb-3 text-gray-700">4-Digit PIN</label>
+              <div className="flex space-x-3 sm:space-x-4 justify-center">
+                {password.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    id={`pass-${idx}`}
+                    type="text"
                     maxLength={1}
-                />
+                    value={digit}
+                    onChange={(e) => handlePasswordChange(idx, e.target.value)}
+                    className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  />
                 ))}
-            </div>
+              </div>
             </div>
 
-            {/* Submit Button */}
             <button
-            type="button"
-            onClick={handleSubmit}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-medium text-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-300 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+              type="button"
+              onClick={handleSubmit}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 sm:py-4 rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-base sm:text-lg"
+              disabled={loading}
             >
-            {isLogin ? 'Login' : 'Create Account'}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Please wait...
+                </div>
+              ) : (
+                isSignup ? 'Create Account' : 'Sign In'
+              )}
             </button>
-        </div>
+          </div>
 
-        {/* Footer Text */}
-        <div className="text-center mt-6">
-            <p className="text-white/60 text-sm">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button
-                onClick={toggleForm}
-                className="text-purple-300 hover:text-purple-200 font-medium transition-colors"
-            >
-                {isLogin ? 'Sign up here' : 'Login here'}
-            </button>
+          <div className="mt-6 sm:mt-8 text-center">
+            <p className="text-sm sm:text-base text-gray-600">
+              {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                type="button"
+                className="text-amber-600 hover:text-orange-600 font-semibold hover:underline transition-colors duration-200"
+                onClick={() => setIsSignup(!isSignup)}
+              >
+                {isSignup ? 'Sign In' : 'Create Account'}
+              </button>
             </p>
+          </div>
         </div>
-        </div>
+      </div>
 
-        {/* Additional Info */}
-        <div className="text-center mt-6">
-        <p className="text-white/40 text-xs">
-            Secure • Fast • Modern
-        </p>
-        </div>
+      {/* Decorative Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 w-20 h-20 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full opacity-20 animate-pulse"></div>
+        <div className="absolute top-32 right-8 w-16 h-16 bg-gradient-to-br from-orange-200 to-red-200 rounded-full opacity-20 animate-pulse delay-1000"></div>
+        <div className="absolute bottom-20 left-8 w-24 h-24 bg-gradient-to-br from-red-200 to-amber-200 rounded-full opacity-20 animate-pulse delay-2000"></div>
+        <div className="absolute bottom-32 right-12 w-12 h-12 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full opacity-20 animate-pulse delay-500"></div>
+      </div>
     </div>
-    </div>
-
-  )
-};
-
-export default Login;
+  );
+}

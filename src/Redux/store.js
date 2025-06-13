@@ -1,18 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './authSlice';
-import productReducer from './productSlice';
-import orderReducer from './orderSlice';
+import accountReducer from './Slices/AccountSlice';
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
-    auth: authReducer,
-    product: productReducer,
-    order: orderReducer,
+    account: accountReducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
-      },
-    }),
 });
+
+export default store;

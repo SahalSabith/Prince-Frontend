@@ -1,84 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Minus, ShoppingCart, X } from 'lucide-react';
-import ProductModal from '../Components/ProductModal';
+import { Search, Plus, Minus, ShoppingCart, X, ChefHat, Printer } from 'lucide-react';
+import ProductModal from '../Components/ProductModal'
 import Cart from '../Components/Cart';
+import Sidebar from '../Components/Sidebar';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProducts, fetchCategories, fetchProductDetail } from '../Redux/Slices/ProductSlice';
 
 const HomePage = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const dispatch = useDispatch();
+  const { products, categories, productDetail, loading, error } = useSelector((state) => state.product);
 
-  // Sample data - Replace with API calls
-  const categories = [
-    { id: 'all', name: 'All Items', emoji: '🍽️' },
-    { id: 'biryani', name: 'Biryani', emoji: '🍛' },
-    { id: 'juice', name: 'Juice', emoji: '🧃' },
-    { id: 'breads', name: 'Breads', emoji: '🍞' },
-    { id: 'snacks', name: 'Snacks', emoji: '🍿' },
-    { id: 'sweets', name: 'Sweets', emoji: '🍬' },
-  ];
 
-  const products = [
-    {
-      id: 1,
-      name: 'Chicken Biryani',
-      price: 180,
-      category: 'biryani',
-      image: 'https://images.unsplash.com/photo-1563379091339-03246963d96c?w=300&h=200&fit=crop',
-      description: 'Aromatic basmati rice with tender chicken pieces and traditional spices'
-    },
-    {
-      id: 2,
-      name: 'Mutton Biryani',
-      price: 220,
-      category: 'biryani',
-      image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=300&h=200&fit=crop',
-      description: 'Rich and flavorful mutton biryani with fragrant spices'
-    },
-    {
-      id: 3,
-      name: 'Fresh Orange Juice',
-      price: 40,
-      category: 'juice',
-      image: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=300&h=200&fit=crop',
-      description: 'Freshly squeezed orange juice packed with vitamin C'
-    },
-    {
-      id: 4,
-      name: 'Butter Naan',
-      price: 35,
-      category: 'breads',
-      image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300&h=200&fit=crop',
-      description: 'Soft and fluffy naan bread with butter'
-    },
-    {
-      id: 5,
-      name: 'Samosa',
-      price: 25,
-      category: 'snacks',
-      image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300&h=200&fit=crop',
-      description: 'Crispy samosa filled with spiced potatoes'
-    },
-    {
-      id: 6,
-      name: 'Gulab Jamun',
-      price: 60,
-      category: 'sweets',
-      image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&h=200&fit=crop',
-      description: 'Traditional sweet dumplings in sugar syrup'
-    },
-  ];
-
-  // Filter products based on category and search
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  // Add to cart function
+  useEffect(() => {
+    dispatch(fetchCategories());
+    dispatch(fetchProducts());
+  }, [dispatch]);
+
   const addToCart = (product, quantity = 1, note = '') => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
@@ -93,7 +43,9 @@ const HomePage = () => {
     });
   };
 
-  // Update cart quantity
+
+  console.log(products)
+
   const updateCartQuantity = (productId, newQuantity) => {
     if (newQuantity <= 0) {
       setCart(prevCart => prevCart.filter(item => item.id !== productId));
@@ -106,154 +58,154 @@ const HomePage = () => {
     }
   };
 
-  // Remove from cart
   const removeFromCart = (productId) => {
     setCart(prevCart => prevCart.filter(item => item.id !== productId));
   };
 
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-      <div className="flex">
-        {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${showCart && window.innerWidth >= 768 ? 'mr-80' : ''}`}>
-          <div className="p-4 md:p-6 lg:p-8">
-            {/* Header */}
-            <div className="mb-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-                Welcome to Prince Bakery
-              </h1>
-              <p className="text-gray-600">Fresh and delicious food made with love</p>
-            </div>
+    {/* Sidebar - Fixed Outside Main Content */}
+    <Sidebar 
+      isOpen={sidebarOpen} 
+      setIsOpen={setSidebarOpen} 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab} 
+    />
 
-            {/* Categories */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">Categories</h2>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {categories.map(category => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 ${
-                      selectedCategory === category.id
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg'
-                        : 'bg-white text-gray-700 hover:bg-amber-50 border border-gray-200'
-                    }`}
-                  >
-                    <span className="text-lg">{category.emoji}</span>
-                    <span className="font-medium">{category.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+    {/* Main Content */}
+    <div className={`pb-20 transition-all duration-300 ${sidebarOpen ? 'md:ml-72' : 'md:ml-0'}`}>
+      <div className="p-4 sm:p-6">
+        {/* Header */}
+        <div className="mb-6 text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2 mt-7">
+            Welcome to Prince Bakery
+          </h1>
+          <p className="text-gray-600 text-base sm:text-lg">Fresh and delicious food made with love</p>
+        </div>
 
-            {/* Search */}
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search for dishes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-                />
-              </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-              {filteredProducts.map(product => (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-105"
-                  onClick={() => setSelectedProduct(product)}
-                >
-                  <div className="relative">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-2 py-1 rounded-full text-sm font-bold">
-                      ₹{product.price}
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-800 mb-2">{product.name}</h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart(product);
-                      }}
-                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-200"
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No products found</p>
-              </div>
-            )}
+        {/* Search - Mobile First */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search for dishes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white text-base shadow-sm"
+            />
           </div>
         </div>
 
-        {/* Cart Sidebar for Desktop */}
-        <div className={`hidden md:block fixed right-0 top-0 h-full transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'}`}>
+        {/* Categories - Horizontal Scroll */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Categories</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map(category => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl whitespace-nowrap transition-all duration-200 min-w-max ${
+                  selectedCategory === category.id
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg scale-105'
+                    : 'bg-yellow-400 text-gray-700 hover:bg-amber-50 border-2 border-gray-100 hover:border-amber-200'
+                }`}
+              >
+                <span className="font-medium text-sm sm:text-base">{category.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Products Grid - Mobile First */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {filteredProducts.map(product => (
+            <div
+              key={product.id}
+              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => setSelectedProduct(product)}
+            >
+              <div className="relative">
+                <img
+                  src={`http://127.0.0.1:8000/${product.image}`}
+                  alt={product.name}
+                  className="w-full h-44 sm:h-48 object-cover"
+                />
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                  ₹{product.price}
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="font-bold text-gray-800 mb-2 text-base sm:text-lg">{product.name}</h3>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToCart(product);
+                  }}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-200 text-base shadow-md hover:shadow-lg"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-gray-300 mb-4">
+              <Search size={64} className="mx-auto" />
+            </div>
+            <p className="text-gray-500 text-lg font-medium">No products found</p>
+            <p className="text-gray-400 text-sm mt-1">Try searching for something else</p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Mobile Cart Button - Always Visible */}
+    <button
+      onClick={() => setShowCart(true)}
+      className="fixed bottom-6 right-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-full shadow-2xl z-40 transform hover:scale-110 active:scale-95 transition-all duration-200"
+    >
+      <div className="relative">
+        <ShoppingCart size={24} />
+        {totalItems > 0 && (
+          <span className="absolute -top-3 -right-3 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
+            {totalItems}
+          </span>
+        )}
+      </div>
+    </button>
+
+    {/* Cart Modal - Mobile First */}
+    {showCart && (
+      <div className="fixed inset-0 z-50">
+        <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowCart(false)} />
+        <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden sm:max-h-[90vh] sm:left-4 sm:right-4 sm:bottom-4 sm:rounded-2xl lg:max-w-md lg:mx-auto">
           <Cart
             cart={cart}
             updateQuantity={updateCartQuantity}
             removeFromCart={removeFromCart}
             onClose={() => setShowCart(false)}
+            isMobile={true}
           />
         </div>
       </div>
+    )}
 
-      {/* Mobile Cart Button */}
-      <button
-        onClick={() => setShowCart(true)}
-        className="fixed bottom-4 right-4 md:hidden bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-full shadow-lg z-40"
-      >
-        <div className="relative">
-          <ShoppingCart size={24} />
-          {cart.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {cart.reduce((sum, item) => sum + item.quantity, 0)}
-            </span>
-          )}
-        </div>
-      </button>
-
-      {/* Mobile Cart Modal */}
-      {showCart && (
-        <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowCart(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden">
-            <Cart
-              cart={cart}
-              updateQuantity={updateCartQuantity}
-              removeFromCart={removeFromCart}
-              onClose={() => setShowCart(false)}
-              isMobile={true}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Product Modal */}
-      {selectedProduct && (
-        <ProductModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          onAddToCart={addToCart}
-        />
-      )}
-    </div>
+    {/* Product Modal */}
+    {selectedProduct && (
+      <ProductModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={addToCart}
+      />
+    )}
+  </div>
   );
 };
 

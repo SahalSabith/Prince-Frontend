@@ -3,7 +3,7 @@ import { Search, Plus, Minus, ShoppingCart, X, ChefHat, Printer } from 'lucide-r
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../Redux/Slices/CartSlice';
 
-function ProductModal({ product, onClose, onAddToCart }) {
+function ProductModal({ product, onClose,openCart, onAddToCart }) {
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
   const dispatch = useDispatch();
@@ -18,6 +18,7 @@ function ProductModal({ product, onClose, onAddToCart }) {
   const handleAddToCart = () => {
     console.log(product.id, quantity, note)
     dispatch(addToCart({ item:product.id, quantity, note }));
+    openCart(true)
     onClose();
   };
   return (

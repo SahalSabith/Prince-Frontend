@@ -59,6 +59,7 @@ const HomePage = () => {
 
   const addToCartFunc = (product, quantity = 1, note = '') => {
     dispatch(addToCart({ item: product.id, quantity, note }));
+    setShowCart(true)
   };
 
   return (
@@ -197,6 +198,7 @@ const HomePage = () => {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={addToCartFunc}
+          openCart={() => setShowCart(true)}
         />
       )}
     </div>

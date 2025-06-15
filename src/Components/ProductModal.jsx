@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Minus, ShoppingCart, X, ChefHat, Printer } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart, placeOrder, getOrders } from '../Redux/Slices/CartSlice';
+import { addToCart } from '../Redux/Slices/CartSlice';
 
 function ProductModal({ product, onClose, onAddToCart }) {
   const [quantity, setQuantity] = useState(1);

@@ -136,7 +136,7 @@ const HomePage = () => {
               >
                 <div className="relative">
                   <img
-                    src={`http://127.0.0.1:8000/${product.image}`}
+                    src={`http://192.168.0.109:8000/${product.image}`}
                     alt={product.name}
                     className="w-full h-44 sm:h-48 object-cover"
                   />

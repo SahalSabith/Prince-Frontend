@@ -80,7 +80,11 @@ function Cart({ onClose, isMobile = false }) {
   ];
 
   const calculateTotal = useCallback(() => {
-    return cartItems.reduce((total, item) => total + (item.item.price * item.quantity), 0);
+    return cartItems.reduce((total, cartItem) => {
+      const price = cartItem.item?.price || 0;
+      const quantity = cartItem.quantity || 0;
+      return total + (price * quantity);
+    }, 0);
   }, [cartItems]);
 
   // Debounced cart update function
@@ -141,10 +145,11 @@ function Cart({ onClose, isMobile = false }) {
       dispatch(updateItemOptimistic({ itemId, quantity: newQuantity }));
 
       // Use the correct Redux action for updating cart item
+      const cartItem = cartItems.find(item => item.id === itemId);
       await dispatch(updateCartItem({ 
         itemId, 
         quantity: newQuantity, 
-        note: cartItems.find(item => item.id === itemId)?.note || '' 
+        note: cartItem?.note || '' 
       })).unwrap();
 
     } catch (error) {
@@ -207,16 +212,23 @@ function Cart({ onClose, isMobile = false }) {
         </div>
         
         <div style="margin-bottom: 15px;">
-          ${cartItems.map(item => `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <div style="flex: 1;">
-                <div style="font-weight: bold;">${item.item.name}</div>
-                <div style="font-size: 12px;">₹${item.item.price} × ${item.quantity}</div>
-                ${item.note ? `<div style="font-size: 10px; color: #666;">Note: ${item.note}</div>` : ''}
+          ${cartItems.map(cartItem => {
+            const itemName = cartItem.item?.name || 'Unknown Item';
+            const itemPrice = cartItem.item?.price || 0;
+            const quantity = cartItem.quantity || 0;
+            const note = cartItem.note || '';
+            
+            return `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <div style="flex: 1;">
+                  <div style="font-weight: bold;">${itemName}</div>
+                  <div style="font-size: 12px;">₹${itemPrice} × ${quantity}</div>
+                  ${note ? `<div style="font-size: 10px; color: #666;">Note: ${note}</div>` : ''}
+                </div>
+                <div style="font-weight: bold;">₹${itemPrice * quantity}</div>
               </div>
-              <div style="font-weight: bold;">₹${item.item.price * item.quantity}</div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
         
         <div style="border-top: 2px solid #000; padding-top: 10px;">
@@ -263,17 +275,23 @@ function Cart({ onClose, isMobile = false }) {
         </div>
         
         <div style="margin-bottom: 15px;">
-          ${cartItems.map(item => `
-            <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
-              <div style="font-size: 16px; font-weight: bold;">${item.item.name}</div>
-              <div style="font-size: 14px; margin: 5px 0;">Quantity: ${item.quantity}</div>
-              ${item.note ? `<div style="font-size: 12px; color: #666; background: #f0f0f0; padding: 5px; border-radius: 3px;">Special Instructions: ${item.note}</div>` : ''}
-            </div>
-          `).join('')}
+          ${cartItems.map(cartItem => {
+            const itemName = cartItem.item?.name || 'Unknown Item';
+            const quantity = cartItem.quantity || 0;
+            const note = cartItem.note || '';
+            
+            return `
+              <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                <div style="font-size: 16px; font-weight: bold;">${itemName}</div>
+                <div style="font-size: 14px; margin: 5px 0;">Quantity: ${quantity}</div>
+                ${note ? `<div style="font-size: 12px; color: #666; background: #f0f0f0; padding: 5px; border-radius: 3px;">Special Instructions: ${note}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
         </div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 14px; font-weight: bold;">
-          Total Items: ${cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+          Total Items: ${cartItems.reduce((sum, cartItem) => sum + (cartItem.quantity || 0), 0)}
         </div>
       </div>
     `;
@@ -321,7 +339,7 @@ function Cart({ onClose, isMobile = false }) {
           <h2 className="text-base sm:text-lg font-bold text-gray-800">Cart</h2>
           {cartItems.length > 0 && (
             <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs px-2 py-1 rounded-full font-bold">
-              {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+              {cartItems.reduce((sum, cartItem) => sum + (cartItem.quantity || 0), 0)}
             </span>
           )}
           {updateLoading && (
@@ -410,23 +428,27 @@ function Cart({ onClose, isMobile = false }) {
             </div>
           ) : (
             <div className="space-y-3 pb-2">
-              {cartItems.map(item => {
-                const isItemLoading = itemUpdateLoading[item.id];
+              {cartItems.map(cartItem => {
+                const isItemLoading = itemUpdateLoading[cartItem.id];
+                const itemName = cartItem.item?.name || 'Unknown Item';
+                const itemPrice = cartItem.item?.price || 0;
+                const quantity = cartItem.quantity || 0;
+                const note = cartItem.note || '';
                 
                 return (
-                  <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={cartItem.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1 pr-2">
-                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base leading-tight">{item.item.name}</h4>
-                        <p className="text-amber-600 font-bold text-xs sm:text-sm mt-1">₹{item.item.price}</p>
-                        {item.note && (
+                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base leading-tight">{itemName}</h4>
+                        <p className="text-amber-600 font-bold text-xs sm:text-sm mt-1">₹{itemPrice}</p>
+                        {note && (
                           <p className="text-gray-500 text-xs mt-2 italic bg-gray-50 p-2 rounded border-l-2 border-gray-300">
-                            Note: {item.note}
+                            Note: {note}
                           </p>
                         )}
                       </div>
                       <button
-                        onClick={() => handleRemoveItem(item.id)}
+                        onClick={() => handleRemoveItem(cartItem.id)}
                         disabled={isItemLoading}
                         className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors disabled:opacity-50 flex-shrink-0"
                       >
@@ -441,7 +463,7 @@ function Cart({ onClose, isMobile = false }) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 sm:gap-3">
                         <button
-                          onClick={() => handleQuantityUpdate(item.id, item.quantity - 1)}
+                          onClick={() => handleQuantityUpdate(cartItem.id, quantity - 1)}
                           disabled={isItemLoading}
                           className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200 disabled:opacity-50"
                         >
@@ -452,12 +474,12 @@ function Cart({ onClose, isMobile = false }) {
                           {isItemLoading ? (
                             <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-amber-600 mx-auto"></div>
                           ) : (
-                            item.quantity
+                            quantity
                           )}
                         </span>
                         
                         <button
-                          onClick={() => handleQuantityUpdate(item.id, item.quantity + 1)}
+                          onClick={() => handleQuantityUpdate(cartItem.id, quantity + 1)}
                           disabled={isItemLoading}
                           className="w-7 h-7 sm:w-8 sm:h-8 bg-amber-500 hover:bg-amber-600 rounded-full flex items-center justify-center transition-colors duration-200 disabled:opacity-50"
                         >
@@ -466,7 +488,7 @@ function Cart({ onClose, isMobile = false }) {
                       </div>
                       
                       <span className="font-bold text-gray-800 text-sm sm:text-base">
-                        ₹{item.item.price * item.quantity}
+                        ₹{itemPrice * quantity}
                       </span>
                     </div>
                   </div>

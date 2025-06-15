@@ -3,7 +3,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from '../axiosInstance';
 
 // const API_URL = 'http://127.0.0.1:8000/api';
-const API_URL = 'http://0.0.0.0:8000/api';
+const API_URL = 'http://192.168.0.109:8000/api';
 
 const getTokenHeader = () => {
   const token = localStorage.getItem('access');

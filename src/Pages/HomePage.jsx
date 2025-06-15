@@ -128,36 +128,61 @@ const HomePage = () => {
           </div>
 
           {/* Products Grid - Mobile First */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredProducts.map(product => (
               <div
                 key={product.id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => setSelectedProduct(product)}
               >
-                <div className="relative">
-                  <img
-                    src={`http://192.168.0.109:8000/${product.image}`}
-                    alt={product.name}
-                    className="w-full h-44 sm:h-48 object-cover"
-                  />
-                  <div className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                    ₹{product.price}
+                {product.image ? (
+                  // Card with image
+                  <>
+                    <div className="relative">
+                      <img
+                        src={`http://192.168.0.109:8000/${product.image}`}
+                        alt={product.name}
+                        className="w-full h-36 sm:h-40 object-cover"
+                      />
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
+                        ₹{product.price}
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-bold text-gray-800 mb-2 text-sm sm:text-base">{product.name}</h3>
+                      <p className="text-gray-600 text-xs mb-3 line-clamp-2">{product.description}</p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCartFunc(product);
+                        }}
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2 rounded-lg font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-200 text-sm shadow-md hover:shadow-lg"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // Card without image - centered content
+                  <div className="p-4 h-full flex flex-col justify-center items-center text-center min-h-[200px]">
+                    <div className="mb-3">
+                      <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg mb-3">
+                        ₹{product.price}
+                      </div>
+                      <h3 className="font-bold text-gray-800 mb-2 text-lg sm:text-xl">{product.name}</h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">{product.description}</p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCartFunc(product);
+                      }}
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2 rounded-lg font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-200 text-sm shadow-md hover:shadow-lg"
+                    >
+                      Add to Cart
+                    </button>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-800 mb-2 text-base sm:text-lg">{product.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCartFunc(product);
-                    }}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 rounded-xl font-medium hover:from-amber-600 hover:to-orange-700 transition-all duration-200 text-base shadow-md hover:shadow-lg"
-                  >
-                    Add to Cart
-                  </button>
-                </div>
+                )}
               </div>
             ))}
           </div>

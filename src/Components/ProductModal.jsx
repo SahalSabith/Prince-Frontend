@@ -17,7 +17,7 @@ function ProductModal({ product, onClose, onAddToCart }) {
 
   const handleAddToCart = () => {
     console.log(product.id, quantity, note)
-    dispatch(addToCart({ product_id:product.id, quantity, note }));
+    dispatch(addToCart({ item:product.id, quantity, note }));
     onClose();
   };
   return (

@@ -209,7 +209,7 @@ const cartSlice = createSlice({
         if (itemIndex !== -1) {
           state.fetchCart.items[itemIndex].quantity = quantity;
           state.fetchCart.items[itemIndex].total_amount = 
-            state.fetchCart.items[itemIndex].product.price * quantity;
+            state.fetchCart.items[itemIndex].item.price * quantity;
           
           // Recalculate total
           state.fetchCart.total_amount = state.fetchCart.items.reduce(

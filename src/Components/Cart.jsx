@@ -80,7 +80,7 @@ function Cart({ onClose, isMobile = false }) {
   ];
 
   const calculateTotal = useCallback(() => {
-    return cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => total + (item.item.price * item.quantity), 0);
   }, [cartItems]);
 
   // Debounced cart update function
@@ -210,11 +210,11 @@ function Cart({ onClose, isMobile = false }) {
           ${cartItems.map(item => `
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div style="flex: 1;">
-                <div style="font-weight: bold;">${item.product.name}</div>
-                <div style="font-size: 12px;">₹${item.product.price} × ${item.quantity}</div>
+                <div style="font-weight: bold;">${item.item.name}</div>
+                <div style="font-size: 12px;">₹${item.item.price} × ${item.quantity}</div>
                 ${item.note ? `<div style="font-size: 10px; color: #666;">Note: ${item.note}</div>` : ''}
               </div>
-              <div style="font-weight: bold;">₹${item.product.price * item.quantity}</div>
+              <div style="font-weight: bold;">₹${item.item.price * item.quantity}</div>
             </div>
           `).join('')}
         </div>
@@ -265,7 +265,7 @@ function Cart({ onClose, isMobile = false }) {
         <div style="margin-bottom: 15px;">
           ${cartItems.map(item => `
             <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
-              <div style="font-size: 16px; font-weight: bold;">${item.product.name}</div>
+              <div style="font-size: 16px; font-weight: bold;">${item.item.name}</div>
               <div style="font-size: 14px; margin: 5px 0;">Quantity: ${item.quantity}</div>
               ${item.note ? `<div style="font-size: 12px; color: #666; background: #f0f0f0; padding: 5px; border-radius: 3px;">Special Instructions: ${item.note}</div>` : ''}
             </div>
@@ -417,8 +417,8 @@ function Cart({ onClose, isMobile = false }) {
                   <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1 pr-2">
-                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base leading-tight">{item.product.name}</h4>
-                        <p className="text-amber-600 font-bold text-xs sm:text-sm mt-1">₹{item.product.price}</p>
+                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base leading-tight">{item.item.name}</h4>
+                        <p className="text-amber-600 font-bold text-xs sm:text-sm mt-1">₹{item.item.price}</p>
                         {item.note && (
                           <p className="text-gray-500 text-xs mt-2 italic bg-gray-50 p-2 rounded border-l-2 border-gray-300">
                             Note: {item.note}
@@ -466,7 +466,7 @@ function Cart({ onClose, isMobile = false }) {
                       </div>
                       
                       <span className="font-bold text-gray-800 text-sm sm:text-base">
-                        ₹{item.product.price * item.quantity}
+                        ₹{item.item.price * item.quantity}
                       </span>
                     </div>
                   </div>

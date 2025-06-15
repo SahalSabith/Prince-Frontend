@@ -58,7 +58,7 @@ const HomePage = () => {
   }, [dispatch]);
 
   const addToCartFunc = (product, quantity = 1, note = '') => {
-    dispatch(addToCart({ product_id: product.id, quantity, note }));
+    dispatch(addToCart({ item: product.id, quantity, note }));
   };
 
   return (

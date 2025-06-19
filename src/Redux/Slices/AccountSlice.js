@@ -8,34 +8,11 @@ const API_URL = 'https://api.princebakery.shop/api';
 
 // -------- Async Thunks ---------
 
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.startsWith(name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
-
 export const signupUser = createAsyncThunk(
   'account/signupUser',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/signup/`, payload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        withCredentials: true
-      });
+      const response = await axios.post(`${API_URL}/signup/`, payload);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response.data);
@@ -47,14 +24,7 @@ export const loginUser = createAsyncThunk(
   'account/loginUser',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/login/`, payload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        withCredentials: true
-      });
+      const response = await axios.post(`${API_URL}/login/`, payload);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response.data);

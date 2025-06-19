@@ -8,11 +8,28 @@ const API_URL = 'https://api.princebakery.shop/api';
 
 // -------- Async Thunks ---------
 
+export function getCSRFToken() {
+  const name = 'csrftoken';
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    let [key, value] = cookie.trim().split('=');
+    if (key === name) return decodeURIComponent(value);
+  }
+  return null;
+}
+
+
 export const signupUser = createAsyncThunk(
   'account/signupUser',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/signup/`, payload);
+      const response = await axios.post(`${API_URL}/signup/`, payload,{
+      headers: {
+        'X-CSRFToken': getCSRFToken(),
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    });
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response.data);
@@ -24,7 +41,13 @@ export const loginUser = createAsyncThunk(
   'account/loginUser',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/login/`, payload);
+      const response = await axios.post(`${API_URL}/login/`, payload,{
+      headers: {
+        'X-CSRFToken': getCSRFToken(),
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    });
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response.data);

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import axiosInstance from '../axiosInstance'
 
-const API_URL = 'https://api.princebakery.shop/api';
+const API_URL = 'http://127.0.0.1:8000/api';
 
 export const fetchCategories = createAsyncThunk(
   'product/fetchCategories',

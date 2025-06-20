@@ -421,6 +421,35 @@ function Cart({ onClose, isMobile = false }) {
   );
 }
 
+const toggleFullScreen = () => {
+  const elem = document.documentElement;
+
+  if (!document.fullscreenElement &&
+      !document.webkitFullscreenElement &&
+      !document.mozFullScreenElement &&
+      !document.msFullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+      elem.mozRequestFullScreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    }
+  }
+};
+
 const HomePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
@@ -486,6 +515,9 @@ const HomePage = () => {
                     <h1 className="text-xl lg:text-2xl font-bold text-slate-800">Prince Bakery</h1>
                     <p className="text-sm text-slate-500 hidden md:block">Fresh & Delicious</p>
                   </div>
+                  <button
+                  onClick={toggleFullScreen}
+                  className="ml-3 flex items-center px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-medium">Fullscreen</button>
                 </div>
               </div>
 

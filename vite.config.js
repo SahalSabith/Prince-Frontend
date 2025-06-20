@@ -8,6 +8,6 @@ export default defineConfig({
   },
   server: {
     host: true,
-    allowedHosts: ['billing.princebakery.shop'],
+    allowedHosts: ['app.princebakery.shop'],
   }
 })

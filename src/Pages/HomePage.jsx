@@ -583,21 +583,37 @@ function Cart({ onClose, isMobile = false }) {
                     {/* Item Details */}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-800 text-sm truncate">{itemName}</p>
+
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <span>₹{itemPrice} × {quantity}</span>
                         {cartItem.extras && cartItem.extras.length > 0 && (
-                          <span className="text-green-600">
-                            + {cartItem.extras.length} extra{cartItem.extras.length > 1 ? 's' : ''}
-                          </span>
-                        )}
+                            <span className="text-green-600">
+                              + {cartItem.extras.reduce((sum, extra) => sum + (extra.quantity || 1), 0)} extra
+                              {cartItem.extras.reduce((sum, extra) => sum + (extra.quantity || 1), 0) > 1 ? 's' : ''}
+                            </span>
+                          )}
                       </div>
+
+                      {/* Detailed Extras List */}
+                      {cartItem.extras && cartItem.extras.length > 0 && (
+                        <ul className="ml-2 mt-1 text-xs text-slate-600 list-disc list-inside">
+                          {cartItem.extras.map((extra, index) => (
+                            <li key={index}>
+                              {extra.extra_name} × {extra.quantity || 1}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
                       <div className="text-xs text-slate-600 font-medium">
                         Total: ₹{cartItem.total_amount || (itemPrice * quantity)}
                       </div>
+
                       {cartItem.note && (
                         <p className="text-xs text-slate-400 mt-1 truncate">Note: {cartItem.note}</p>
                       )}
                     </div>
+
 
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -606,7 +622,7 @@ function Cart({ onClose, isMobile = false }) {
                         className="p-1 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 disabled:cursor-not-allowed rounded text-slate-600 transition-colors"
                         disabled={isItemLoading}
                       >
-                        <Minus size={10} />
+                        <Minus size={15} />
                       </button>
                       <span className="px-1.5 font-medium text-sm min-w-[20px] text-center">
                         {isItemLoading ? (
@@ -620,14 +636,14 @@ function Cart({ onClose, isMobile = false }) {
                         className="p-1 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 disabled:cursor-not-allowed rounded text-slate-600 transition-colors"
                         disabled={isItemLoading}
                       >
-                        <Plus size={10} />
+                        <Plus size={15} />
                       </button>
                       <button
                         onClick={() => handleRemoveItem(cartItem.id)}
                         className="ml-1 text-red-500 hover:text-red-700 disabled:text-red-300 disabled:cursor-not-allowed transition-colors"
                         disabled={isItemLoading}
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </div>
@@ -756,7 +772,7 @@ const toggleFullScreen = () => {
 const HomePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
@@ -768,10 +784,20 @@ const HomePage = () => {
   // Get total items from Redux cart
   const totalItems = fetchCart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
+
   const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === 'all' || product.category.id === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+      let matchesCategory;
+      
+      if (selectedCategory === 'all') {
+          matchesCategory = true; // Show all products
+      } else if (selectedCategory === 'popular') {
+          matchesCategory = product.is_popular; // Show only popular products
+      } else {
+          matchesCategory = product.category.id === selectedCategory; // Show products in selected category
+      }
+      
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
   });
 
   useEffect(() => {
@@ -876,6 +902,18 @@ const HomePage = () => {
             <div>
               <h3 className="text-xl font-semibold text-slate-800 mb-4">Categories</h3>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {/* Popular Button */}
+                <button
+                  onClick={() => setSelectedCategory('popular')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-200 min-w-max font-medium ${
+                    selectedCategory === 'popular'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105'
+                      : 'bg-white text-slate-600 hover:bg-slate-50 border-2 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                  }`}
+                >
+                  <span>Popular</span>
+                </button>
+
                 <button
                   onClick={() => setSelectedCategory('all')}
                   className={`flex items-center gap-2 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-200 min-w-max font-medium ${
@@ -886,6 +924,7 @@ const HomePage = () => {
                 >
                   <span>All Items</span>
                 </button>
+                
                 {categories.map(category => (
                   <button
                     key={category.id}

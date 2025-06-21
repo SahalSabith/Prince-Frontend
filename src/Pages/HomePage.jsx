@@ -118,7 +118,7 @@ const OrderConfirmationModal = ({ isOpen, onClose, onConfirm, cartItems, total, 
                         )}
                       </div>
                       <p className="font-semibold text-gray-900">
-                        ₹{cartItem.total_amount || ((cartItem.item?.price || 0) * (cartItem.quantity || 1))}
+                        ₹{((cartItem.item?.price || 0) * (cartItem.quantity || 1))}
                       </p>
                     </div>
                   </div>

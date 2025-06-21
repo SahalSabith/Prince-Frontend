@@ -76,7 +76,7 @@ const handleAddToCart = () => {
       item: product.id, 
       quantity, 
       note,
-      extras: extrasData  // Now sends correct format
+      extras: extrasData
     }));
     
     if (openCart) {

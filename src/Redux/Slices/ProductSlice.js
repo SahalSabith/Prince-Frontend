@@ -40,11 +40,24 @@ export const fetchProductDetail = createAsyncThunk(
   }
 );
 
+export const fetchProductExtras = createAsyncThunk(
+  'product/fetchProductExtras',
+  async (productId, thunkAPI) => {
+    try {
+      const response = await axiosInstance.get(`${API_URL}/products/${productId}/extras/`);
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response.data);
+    }
+  }
+);
+
 const productSlice = createSlice({
   name: 'product',
   initialState: {
     categories: [],
     products: [],
+    productExtras: null,
     productDetail: null,
     loading: false,
     error: null,
@@ -86,6 +99,19 @@ const productSlice = createSlice({
       state.productDetail = action.payload;
     });
     builder.addCase(fetchProductDetail.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    // Product Extras
+    builder.addCase(fetchProductExtras.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(fetchProductExtras.fulfilled, (state, action) => {
+      state.loading = false;
+      state.productExtras = action.payload;
+    });
+    builder.addCase(fetchProductExtras.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
     });

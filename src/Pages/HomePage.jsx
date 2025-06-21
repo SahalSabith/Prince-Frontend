@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Menu, Home, Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Menu, Home, Settings, CheckCircle, Package, UtensilsCrossed } from 'lucide-react';
 import ProductModal from '../Components/ProductModal'
 import Sidebar from '../Components/Sidebar';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts, fetchCategories, fetchProductDetail } from '../Redux/Slices/ProductSlice';
 import { addToCart } from '../Redux/Slices/CartSlice';
-
+import { addCartItemExtra, removeCartItemExtra, addExtraOptimistic, removeExtraOptimistic } from '../Redux/Slices/CartSlice';
 import { Search, Plus, Minus, ShoppingCart, X, ChefHat, Printer, AlertCircle, Trash2 } from 'lucide-react';
 import { 
   getCart, 
@@ -34,22 +34,181 @@ const generateShortName = (itemName) => {
   return itemName.substring(0, 2).toUpperCase();
 };
 
+// Order Confirmation Modal Component
+const OrderConfirmationModal = ({ isOpen, onClose, onConfirm, cartItems, total, orderType, tableNumber, loading }) => {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+        onClick={onClose}
+        style={{ zIndex: 10000 }}
+      />
+      
+      <div 
+        className="fixed inset-0 flex items-center justify-center z-[10001] p-4 pointer-events-none"
+        style={{ zIndex: 10001 }}
+      >
+        <div 
+          className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Confirm Your Order</h3>
+              <button
+                onClick={onClose}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                disabled={loading}
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Order Type */}
+            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+              {orderType === 'table' ? (
+                <UtensilsCrossed size={20} className="text-blue-600" />
+              ) : (
+                <Package size={20} className="text-blue-600" />
+              )}
+              <div>
+                <p className="font-medium text-gray-900">
+                  {orderType === 'table' ? 'Dine In' : 'Takeaway'}
+                </p>
+                {orderType === 'table' && tableNumber && (
+                  <p className="text-sm text-gray-600">Table: {tableNumber}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-900">Order Items</h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {cartItems.map((cartItem) => (
+                  <div key={cartItem.id} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">
+                          {cartItem.item?.name || 'Unnamed Item'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          ₹{cartItem.item?.price || 0} × {cartItem.quantity || 1}
+                        </p>
+                        
+                        {/* Extras in Modal */}
+                        {cartItem.extras && cartItem.extras.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs font-medium text-gray-600">Extras:</p>
+                            {cartItem.extras.map((extraItem, index) => (
+                              <div key={extraItem.id || index} className="flex justify-between items-center text-xs text-gray-500 ml-2">
+                                <span>+ {extraItem.extra?.name || extraItem.name}</span>
+                                <span>₹{extraItem.total_amount || extraItem.price}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {cartItem.note && (
+                          <p className="text-xs text-gray-400 mt-1">Note: {cartItem.note}</p>
+                        )}
+                      </div>
+                      <p className="font-semibold text-gray-900">
+                        ₹{cartItem.total_amount || ((cartItem.item?.price || 0) * (cartItem.quantity || 1))}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Total */}
+            <div className="border-t pt-3">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-bold text-gray-900">Total Amount:</span>
+                <span className="text-lg font-bold text-green-600">₹{total}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 border-t border-gray-200 space-y-3">
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Placing Order...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={18} />
+                  Confirm Order
+                </>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 function Cart({ onClose, isMobile = false }) {
   const [orderType, setOrderType] = useState('parcel');
   const [tableNumber, setTableNumber] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [operationLoading, setOperationLoading] = useState({});
+  const [validationError, setValidationError] = useState('');
   
   const dispatch = useDispatch();
+  
+  // Get cart state from Redux store
   const { 
     fetchCart, 
     loading, 
     updateLoading, 
     error, 
     successMessage,
-    itemUpdateLoading
-  } = useSelector(state => state.cart);
+    itemUpdateLoading,
+    extraLoading
+  } = useSelector((state) => state.cart);
   
-  // Extract cart items from fetchCart
-  const cartItems = fetchCart?.items || [];
+  // Get products state to access extras information
+  const products = useSelector((state) => state.products?.products || []);
+  
+  // Extract cart items and merge with product extras data
+  const cartItemsWithExtras = useMemo(() => {
+    const items = fetchCart?.items || [];
+    
+    return items.map(cartItem => {
+      // Find the corresponding product to get available extras
+      const product = products?.find(p => p.id === cartItem.item?.id);
+      const availableExtras = product?.extras || [];
+      
+      // Get selected extras from cart item (these come from the API)
+      const selectedExtras = cartItem.extras || [];
+
+      return {
+        ...cartItem,
+        availableExtras,
+        extras: selectedExtras // Use actual extras from API
+      };
+    });
+  }, [fetchCart?.items, products]);
   
   // Ref for debounce timeout
   const updateTimeoutRef = useRef(null);
@@ -100,12 +259,42 @@ function Cart({ onClose, isMobile = false }) {
   ];
 
   const calculateTotal = useCallback(() => {
-    return cartItems.reduce((total, cartItem) => {
-      const price = cartItem.item?.price || 0;
-      const quantity = cartItem.quantity || 0;
-      return total + (price * quantity);
+    return cartItemsWithExtras.reduce((total, cartItem) => {
+      return total + (cartItem.total_amount || 0);
     }, 0);
-  }, [cartItems]);
+  }, [cartItemsWithExtras]);
+
+  // Fixed function to handle extra toggle
+  const handleExtraToggle = async (cartItemId, extra) => {
+    const cartItem = cartItemsWithExtras.find(item => item.id === cartItemId);
+    const isSelected = cartItem.extras?.some(selectedExtra => 
+      (selectedExtra.extra?.id || selectedExtra.id) === extra.id
+    );
+    
+    try {
+      if (isSelected) {
+        // Remove extra - use optimistic update first
+        dispatch(removeExtraOptimistic({ itemId: cartItemId, extraId: extra.id }));
+        await dispatch(removeCartItemExtra({ itemId: cartItemId, extraId: extra.id })).unwrap();
+      } else {
+        // Add extra - use optimistic update first
+        dispatch(addExtraOptimistic({ 
+          itemId: cartItemId, 
+          extra: {
+            id: extra.id,
+            name: extra.name,
+            price: extra.price
+          }, 
+          quantity: 1 
+        }));
+        await dispatch(addCartItemExtra({ itemId: cartItemId, extraId: extra.id, quantity: 1 })).unwrap();
+      }
+    } catch (error) {
+      console.error('Failed to toggle extra:', error);
+      // Revert optimistic update on error by refetching cart
+      dispatch(getCart());
+    }
+  };
 
   // Debounced cart update function
   const updateCartWithDebounce = useCallback((updateData) => {
@@ -117,23 +306,21 @@ function Cart({ onClose, isMobile = false }) {
     // Set new timeout
     updateTimeoutRef.current = setTimeout(async () => {
       try {
-        await dispatch(editCart(updateData)).unwrap();
+        await dispatch(editCart(updateData));
       } catch (error) {
         console.error('Failed to update cart:', error);
       }
-    }, 800); // 800ms delay
+    }, 800);
   }, [dispatch]);
 
   const handleOrderTypeChange = (newOrderType) => {
     setOrderType(newOrderType);
     
-    // Prepare update data
     const updateData = {
       order_type: newOrderType,
       table_number: newOrderType === 'table' ? tableNumber : null,
     };
 
-    // Update cart with debounce
     updateCartWithDebounce(updateData);
   };
 
@@ -141,13 +328,11 @@ function Cart({ onClose, isMobile = false }) {
     setTableNumber(newTableNumber);
     
     if (orderType === 'table') {
-      // Prepare update data
       const updateData = {
         order_type: orderType,
         table_number: newTableNumber,
       };
 
-      // Update cart with debounce
       updateCartWithDebounce(updateData);
     }
   };
@@ -155,17 +340,16 @@ function Cart({ onClose, isMobile = false }) {
   // Fixed quantity update handler
   const handleQuantityUpdate = async (itemId, newQuantity) => {
     if (newQuantity <= 0) {
-      // Remove item if quantity is 0 or less
-      handleRemoveItem(itemId);
+      await handleRemoveItem(itemId);
       return;
     }
 
     try {
-      // Optimistic update for better UX
+      const cartItem = cartItemsWithExtras.find(item => item.id === itemId);
+      
+      // Optimistic update
       dispatch(updateItemOptimistic({ itemId, quantity: newQuantity }));
 
-      // Use the correct Redux action for updating cart item
-      const cartItem = cartItems.find(item => item.id === itemId);
       await dispatch(updateCartItem({ 
         itemId, 
         quantity: newQuantity, 
@@ -174,7 +358,6 @@ function Cart({ onClose, isMobile = false }) {
 
     } catch (error) {
       console.error('Failed to update quantity:', error);
-      // Revert optimistic update on error by refetching cart
       dispatch(getCart());
     }
   };
@@ -182,25 +365,18 @@ function Cart({ onClose, isMobile = false }) {
   // Fixed remove item handler
   const handleRemoveItem = async (itemId) => {
     try {
-      // Optimistic update - remove item from local state
+      // Optimistic update
       dispatch(removeItemOptimistic(itemId));
 
-      // Use the correct Redux action for removing cart item
       await dispatch(removeCartItem(itemId)).unwrap();
 
     } catch (error) {
       console.error('Failed to remove item:', error);
-      // Revert optimistic update on error by refetching cart
       dispatch(getCart());
     }
   };
 
-  const handlePlaceOrder = async () => {
-    if (orderType === 'table' && !tableNumber.trim()) {
-      alert('Please enter a table number');
-      return;
-    }
-
+  const handlePlaceOrderConfirm = async () => {
     const orderData = {
       order_type: orderType,
       table_number: orderType === 'table' ? tableNumber.trim() : null,
@@ -208,22 +384,49 @@ function Cart({ onClose, isMobile = false }) {
     
     try {
       await dispatch(placeOrder(orderData)).unwrap();
-      // Reset form after successful order
+
       setOrderType('parcel');
       setTableNumber('');
-      // Close cart on successful order
+      setShowConfirmModal(false);
+      
       if (onClose) {
         onClose();
       }
     } catch (error) {
       console.error('Failed to place order:', error);
+      setShowConfirmModal(false);
     }
+  };
+
+  const handlePlaceOrder = () => {
+    setValidationError('');
+    
+    if (orderType === 'table' && !tableNumber.trim()) {
+      setValidationError('Please enter a table number for table orders');
+      return;
+    }
+
+    if (cartItemsWithExtras.length === 0) {
+      setValidationError('Your cart is empty');
+      return;
+    }
+
+    setShowConfirmModal(true);
   };
 
   const handleRetry = () => {
     dispatch(clearError());
     dispatch(getCart());
   };
+
+  useEffect(() => {
+    if (validationError) {
+      const timer = setTimeout(() => {
+        setValidationError('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [validationError]);
 
   // Show loading state
   if (loading && !fetchCart) {
@@ -236,188 +439,288 @@ function Cart({ onClose, isMobile = false }) {
   }
 
   return (
-    <div className="h-full w-full bg-white flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-slate-200">
-        <div className="p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <ShoppingCart size={14} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">Your Cart</h2>
-                {cartItems.length > 0 && (
-                  <p className="text-xs text-slate-600">
-                    {cartItems.reduce((sum, cartItem) => sum + (cartItem.quantity || 0), 0)} items
-                  </p>
-                )}
-              </div>
-            </div>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-1.5 hover:bg-white/50 rounded-lg transition-colors"
-              >
-                <X size={16} className="text-slate-600" />
-              </button>
-            )}
-          </div>
-          
-          {updateLoading && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-              <span>Updating cart...</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Messages */}
-      {(error || successMessage) && (
-        <div className="flex-shrink-0 p-3 space-y-2">
-          {/* Error Display */}
-          {error && (
-            <div className="p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-red-700 text-xs">
-                  {typeof error === 'string' ? error : error.message || 'Something went wrong'}
-                </p>
-                <button 
-                  onClick={handleRetry}
-                  className="text-red-600 hover:text-red-800 text-xs underline mt-1"
-                >
-                  Try again
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Success Message */}
-          {successMessage && (
-            <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-700 text-xs">{successMessage}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Order Type Selector */}
-      <div className="flex-shrink-0 p-3 bg-slate-50 border-b border-slate-200">
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold text-slate-700">Order Type</label>
-          <div className="grid grid-cols-2 gap-2">
-            {orderTypes.map(type => (
-              <button
-                key={type.value}
-                onClick={() => handleOrderTypeChange(type.value)}
-                className={`flex flex-col items-center justify-center p-2 border rounded-lg text-xs font-medium transition ${
-                  orderType === type.value
-                    ? 'bg-blue-100 text-blue-700 border-blue-300'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <span className="text-sm">{type.icon}</span>
-                <span className="mt-1">{type.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {orderType === 'table' && (
-            <input
-              type="text"
-              placeholder="Enter table number"
-              value={tableNumber}
-              onChange={(e) => handleTableNumberChange(e.target.value)}
-              className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Cart Items List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {cartItems.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-slate-500 text-sm">Your cart is empty.</p>
-          </div>
-        ) : (
-          cartItems.map((cartItem) => {
-            const itemName = cartItem.item?.name || 'Unnamed Item';
-            const itemPrice = cartItem.item?.price || 0;
-            const quantity = cartItem.quantity || 1;
-            const shortName = generateShortName(itemName);
-
-            return (
-              <div
-                key={cartItem.id}
-                className="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-lg"
-              >
-                {/* Item Icon with Short Name */}
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold text-xs">{shortName}</span>
+    <>
+      <div className="h-full w-full bg-white flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-slate-200">
+          <div className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <ShoppingCart size={14} className="text-white" />
                 </div>
-
-                {/* Item Details */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 text-sm truncate">{itemName}</p>
-                  <p className="text-xs text-slate-500">₹{itemPrice}</p>
-                  {cartItem.note && (
-                    <p className="text-xs text-slate-400 mt-1 truncate">Note: {cartItem.note}</p>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Your Cart</h2>
+                  {cartItemsWithExtras.length > 0 && (
+                    <p className="text-xs text-slate-600">
+                      {cartItemsWithExtras.reduce((sum, cartItem) => sum + (cartItem.quantity || 0), 0)} items
+                    </p>
                   )}
                 </div>
+              </div>
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="p-1.5 hover:bg-white/50 rounded-lg transition-colors"
+                >
+                  <X size={16} className="text-slate-600" />
+                </button>
+              )}
+            </div>
+            
+            {updateLoading && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                <span>Updating cart...</span>
+              </div>
+            )}
+          </div>
+        </div>
 
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => handleQuantityUpdate(cartItem.id, quantity - 1)}
-                    className="p-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600"
-                    disabled={itemUpdateLoading}
+        {/* Messages */}
+        {(error || successMessage || validationError) && (
+          <div className="flex-shrink-0 p-3 space-y-2">
+            {validationError && (
+              <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-2">
+                <AlertCircle size={16} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-orange-700 text-sm font-medium">{validationError}</p>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-red-700 text-sm font-medium">
+                    {typeof error === 'string' ? error : error.message || 'Something went wrong'}
+                  </p>
+                  <button 
+                    onClick={handleRetry}
+                    className="text-red-600 hover:text-red-800 text-sm underline mt-1"
                   >
-                    <Minus size={10} />
-                  </button>
-                  <span className="px-1.5 font-medium text-sm min-w-[16px] text-center">{quantity}</span>
-                  <button
-                    onClick={() => handleQuantityUpdate(cartItem.id, quantity + 1)}
-                    className="p-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600"
-                    disabled={itemUpdateLoading}
-                  >
-                    <Plus size={10} />
-                  </button>
-                  <button
-                    onClick={() => handleRemoveItem(cartItem.id)}
-                    className="ml-1 text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 size={12} />
+                    Try again
                   </button>
                 </div>
               </div>
-            );
-          })
+            )}
+
+            {successMessage && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
+                <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                <p className="text-green-700 text-sm font-medium">{successMessage}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Order Type Selector */}
+        <div className="flex-shrink-0 p-3 bg-slate-50 border-b border-slate-200">
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-700">Order Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {orderTypes.map(type => (
+                <button
+                  key={type.value}
+                  onClick={() => handleOrderTypeChange(type.value)}
+                  className={`flex flex-col items-center justify-center p-2 border rounded-lg text-xs font-medium transition ${
+                    orderType === type.value
+                      ? 'bg-blue-100 text-blue-700 border-blue-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-sm">{type.icon}</span>
+                  <span className="mt-1">{type.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {orderType === 'table' && (
+              <input
+                type="text"
+                placeholder="Enter table number"
+                value={tableNumber}
+                onChange={(e) => handleTableNumberChange(e.target.value)}
+                className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Cart Items List */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {cartItemsWithExtras.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <ShoppingCart size={24} className="text-slate-400" />
+              </div>
+              <p className="text-slate-500 text-sm">Your cart is empty.</p>
+              <p className="text-slate-400 text-xs mt-1">Add some items to get started!</p>
+            </div>
+          ) : (
+            cartItemsWithExtras.map((cartItem) => {
+              const itemName = cartItem.item?.name || 'Unnamed Item';
+              const itemPrice = cartItem.item?.price || 0;
+              const quantity = cartItem.quantity || 1;
+              const shortName = generateShortName(itemName);
+              const isItemLoading = itemUpdateLoading[cartItem.id];
+
+              return (
+                <div
+                  key={cartItem.id}
+                  className={`bg-white border border-slate-200 rounded-lg transition-opacity ${
+                    isItemLoading ? 'opacity-50' : 'opacity-100'
+                  }`}
+                >
+                  {/* Main Item Row */}
+                  <div className="flex items-center gap-2 p-2.5">
+                    {/* Item Icon */}
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-blue-600 font-bold text-xs">{shortName}</span>
+                    </div>
+
+                    {/* Item Details */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm truncate">{itemName}</p>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span>₹{itemPrice} × {quantity}</span>
+                        {cartItem.extras && cartItem.extras.length > 0 && (
+                          <span className="text-green-600">
+                            + {cartItem.extras.length} extra{cartItem.extras.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-600 font-medium">
+                        Total: ₹{cartItem.total_amount || (itemPrice * quantity)}
+                      </div>
+                      {cartItem.note && (
+                        <p className="text-xs text-slate-400 mt-1 truncate">Note: {cartItem.note}</p>
+                      )}
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => handleQuantityUpdate(cartItem.id, quantity - 1)}
+                        className="p-1 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 disabled:cursor-not-allowed rounded text-slate-600 transition-colors"
+                        disabled={isItemLoading}
+                      >
+                        <Minus size={10} />
+                      </button>
+                      <span className="px-1.5 font-medium text-sm min-w-[20px] text-center">
+                        {isItemLoading ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mx-auto"></div>
+                        ) : (
+                          quantity
+                        )}
+                      </span>
+                      <button
+                        onClick={() => handleQuantityUpdate(cartItem.id, quantity + 1)}
+                        className="p-1 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 disabled:cursor-not-allowed rounded text-slate-600 transition-colors"
+                        disabled={isItemLoading}
+                      >
+                        <Plus size={10} />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveItem(cartItem.id)}
+                        className="ml-1 text-red-500 hover:text-red-700 disabled:text-red-300 disabled:cursor-not-allowed transition-colors"
+                        disabled={isItemLoading}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Extras Section - Only show if there are available extras */}
+                  {cartItem.availableExtras && cartItem.availableExtras.length > 0 && (
+                    <div className="border-t border-slate-100 p-2.5 bg-slate-25">
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                          <Plus size={10} />
+                          Available Extras
+                        </p>
+                        <div className="grid grid-cols-1 gap-1">
+                          {cartItem.availableExtras.map((extra) => {
+                            const isSelected = cartItem.extras?.some(selectedExtra => 
+                              (selectedExtra.extra?.id || selectedExtra.id) === extra.id
+                            );
+                            const extraLoadingKey = `${cartItem.id}-${extra.id}`;
+                            const isExtraLoading = extraLoading[extraLoadingKey];
+                            
+                            return (
+                              <button
+                                key={extra.id}
+                                onClick={() => handleExtraToggle(cartItem.id, extra)}
+                                className={`flex items-center justify-between p-2 rounded text-xs transition-colors ${
+                                  isSelected
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                                } ${isExtraLoading ? 'opacity-50' : ''}`}
+                                disabled={isItemLoading || isExtraLoading}
+                              >
+                                <span className="flex items-center gap-1">
+                                  {isExtraLoading ? (
+                                    <div className="animate-spin rounded-full h-2 w-2 border-b-2 border-current"></div>
+                                  ) : (
+                                    isSelected && <CheckCircle size={10} />
+                                  )}
+                                  {extra.name}
+                                </span>
+                                <span className="font-medium">₹{extra.price}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        {cartItemsWithExtras.length > 0 && (
+          <div className="flex-shrink-0 border-t border-slate-200 p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-semibold text-slate-700">Total:</span>
+              <span className="text-sm font-bold text-slate-900">
+                ₹{fetchCart?.total_amount || calculateTotal()}
+              </span>
+            </div>
+
+            <button
+              onClick={handlePlaceOrder}
+              className="w-full flex items-center justify-center p-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium text-sm transition-colors"
+              disabled={loading || updateLoading}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                'Place Order'
+              )}
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Footer Actions */}
-      {cartItems.length > 0 && (
-        <div className="flex-shrink-0 border-t border-slate-200 p-3 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold text-slate-700">Total:</span>
-            <span className="text-sm font-bold text-slate-900">
-              ₹{fetchCart?.total_amount || calculateTotal()}
-            </span>
-          </div>
-
-          <button
-            onClick={handlePlaceOrder}
-            className="w-full flex items-center justify-center p-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm"
-            disabled={loading || updateLoading}
-          >
-            Place Order
-          </button>
-        </div>
-      )}
-    </div>
+      {/* Order Confirmation Modal */}
+      <OrderConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handlePlaceOrderConfirm}
+        cartItems={cartItemsWithExtras}
+        total={fetchCart?.total_amount || calculateTotal()}
+        orderType={orderType}
+        tableNumber={tableNumber}
+        loading={loading}
+      />
+    </>
   );
 }
 
@@ -477,8 +780,14 @@ const HomePage = () => {
     dispatch(getCart()); // Load cart on component mount
   }, [dispatch]);
 
-  const addToCartFunc = (product, quantity = 1, note = '') => {
-    dispatch(addToCart({ item: product.id, quantity, note }));
+  const addToCartFunc = async (product, quantity = 1, note = '') => {
+    try {
+      await dispatch(addToCart({ item: product.id, quantity, note })).unwrap();
+      // Optionally show success message or refresh cart
+      dispatch(getCart());
+    } catch (error) {
+      console.error('Failed to add item to cart:', error);
+    }
   };
 
   return (
@@ -492,18 +801,18 @@ const HomePage = () => {
       />
 
       {/* Main Layout Container */}
-      <div className={`flex transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'}`}>
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'}`}>
         
-        {/* Main Content Area - Fixed right margin for desktop cart */}
-        <div className="flex-1 lg:mr-[320px] min-h-screen">
+        {/* Main Content Area */}
+        <div className="min-h-screen lg:pr-[320px]">
           {/* Top Header Bar */}
-          <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+          <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
             <div className="flex items-center justify-between p-4 lg:p-6">
               {/* Left side - Menu button and Logo */}
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors lg:hidden"
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors z-50 relative"
                 >
                   <Menu size={24} className="text-slate-600" />
                 </button>
@@ -516,15 +825,18 @@ const HomePage = () => {
                     <p className="text-sm text-slate-500 hidden md:block">Fresh & Delicious</p>
                   </div>
                   <button
-                  onClick={toggleFullScreen}
-                  className="ml-3 flex items-center px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-medium">Fullscreen</button>
+                    onClick={toggleFullScreen}
+                    className="ml-3 flex items-center px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-medium"
+                  >
+                    Fullscreen
+                  </button>
                 </div>
               </div>
 
               {/* Mobile Cart Button */}
               <button
                 onClick={() => setShowMobileCart(true)}
-                className="lg:hidden relative p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+                className="lg:hidden relative p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all z-50"
               >
                 <ShoppingCart size={20} />
                 {totalItems > 0 && (
@@ -680,7 +992,7 @@ const HomePage = () => {
         </div>
 
         {/* Right Side Cart - Desktop Only - Fixed position */}
-        <div className="hidden lg:block fixed right-0 top-0 w-[320px] h-screen bg-white border-l border-slate-200 shadow-xl z-40">
+        <div className="hidden lg:block fixed right-0 top-0 w-[320px] h-screen bg-white border-l border-slate-200 shadow-xl z-20">
           <Cart 
             onClose={null} // No close button needed for fixed sidebar
             isMobile={false}
@@ -690,7 +1002,7 @@ const HomePage = () => {
 
       {/* Mobile Cart Modal */}
       {showMobileCart && (
-        <div className="lg:hidden fixed inset-0 z-50 flex items-end">
+        <div className="lg:hidden fixed inset-0 z-[9998] flex items-end">
           <div 
             className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
             onClick={() => setShowMobileCart(false)} 

@@ -42,7 +42,6 @@ export default function Login() {
       // On success, redirect to home
       navigate('/');
     } catch (err) {
-      console.log({ phone, password: userData.password })
       console.error(err);
       setError(err);
     } finally {

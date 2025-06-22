@@ -777,44 +777,118 @@ const HomePage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
   
+  // New states for keyboard handling
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  
+  const searchInputRef = useRef(null);
+  const searchResultsRef = useRef(null);
+  
   const dispatch = useDispatch();
   const { products, categories, productDetail, loading, error } = useSelector((state) => state.product);
   const { fetchCart } = useSelector((state) => state.cart);
 
-  // Get total items from Redux cart
   const totalItems = fetchCart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
+  // Detect virtual keyboard
+  useEffect(() => {
+    const handleResize = () => {
+      const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const windowHeight = window.screen.height;
+      
+      // If viewport height is significantly smaller, keyboard is likely visible
+      const keyboardVisible = (windowHeight - viewportHeight) > 150;
+      setIsKeyboardVisible(keyboardVisible);
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      return () => window.visualViewport.removeEventListener('resize', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  // Auto-dismiss keyboard when clicking outside search
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        searchInputRef.current.blur();
+        setSearchFocused(false);
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const filteredProducts = products.filter(product => {
-      let matchesCategory;
-      
-      if (selectedCategory === 'all') {
-          matchesCategory = true; // Show all products
-      } else if (selectedCategory === 'popular') {
-          matchesCategory = product.is_popular; // Show only popular products
-      } else {
-          matchesCategory = product.category.id === selectedCategory; // Show products in selected category
-      }
-      
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+    let matchesCategory;
+    
+    if (selectedCategory === 'all') {
+      matchesCategory = true;
+    } else if (selectedCategory === 'popular') {
+      matchesCategory = product.is_popular;
+    } else {
+      matchesCategory = product.category.id === selectedCategory;
+    }
+    
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
-  useEffect(() => {
-    dispatch(fetchCategories());
-    dispatch(fetchProducts());
-    dispatch(getCart()); // Load cart on component mount
-  }, [dispatch]);
+  // Enhanced search handlers
+  const handleSearchFocus = () => {
+    setSearchFocused(true);
+    setShowSearchResults(searchQuery.length > 0);
+  };
 
+  const handleSearchBlur = () => {
+    // Delay blur to allow clicking on results
+    setTimeout(() => {
+      setSearchFocused(false);
+      setShowSearchResults(false);
+    }, 150);
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowSearchResults(value.length > 0);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    searchInputRef.current.blur();
+    setSearchFocused(false);
+    setShowSearchResults(false);
+  };
+
+  const selectProductFromSearch = (product) => {
+    setSelectedProduct(product);
+    setSearchQuery('');
+    setShowSearchResults(false);
+    searchInputRef.current.blur();
+  };
+
+  // Add to cart function
   const addToCartFunc = async (product, quantity = 1, note = '') => {
     try {
       await dispatch(addToCart({ item: product.id, quantity, note })).unwrap();
-      // Optionally show success message or refresh cart
       dispatch(getCart());
     } catch (error) {
       console.error('Failed to add item to cart:', error);
     }
   };
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+    dispatch(fetchProducts());
+    dispatch(getCart());
+  }, [dispatch]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -872,37 +946,115 @@ const HomePage = () => {
                 )}
               </button>
             </div>
+
+            {/* Enhanced Search Bar - Moved to header for better mobile experience */}
+            <div className="px-4 pb-4 lg:px-6">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search dishes..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={handleSearchFocus}
+                    onBlur={handleSearchBlur}
+                    className="w-full pl-12 pr-20 py-3 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm text-base placeholder-slate-400"
+                    autoComplete="off"
+                    inputMode="search"
+                  />
+                  {searchQuery && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setShowSearchResults(false);
+                          searchInputRef.current.focus();
+                        }}
+                        className="p-1 hover:bg-slate-100 rounded-full"
+                      >
+                        <X size={16} className="text-slate-400" />
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600"
+                      >
+                        Go
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Results Dropdown */}
+                {showSearchResults && filteredProducts.length > 0 && (
+                  <div 
+                    ref={searchResultsRef}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto"
+                  >
+                    <div className="p-2">
+                      <div className="text-xs text-slate-500 px-3 py-2 border-b border-slate-100">
+                        {filteredProducts.length} results found
+                      </div>
+                      {filteredProducts.slice(0, 8).map(product => (
+                        <button
+                          key={product.id}
+                          onClick={() => selectProductFromSearch(product)}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors text-left"
+                        >
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-blue-600 font-bold text-xs">
+                              {generateShortName(product.name)}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800 text-sm truncate">{product.name}</p>
+                            <p className="text-xs text-slate-500">₹{product.price}</p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCartFunc(product);
+                            }}
+                            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </button>
+                      ))}
+                      {filteredProducts.length > 8 && (
+                        <div className="p-3 text-center text-sm text-slate-500 border-t border-slate-100">
+                          +{filteredProducts.length - 8} more results
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="p-4 lg:p-8 space-y-8">
-            {/* Welcome Section */}
-            <div className="text-center lg:text-left">
-              <h2 className="text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
-                Welcome to Our Kitchen
-              </h2>
-              <p className="text-slate-600 text-lg">Discover amazing flavors crafted with love</p>
-            </div>
-
-            {/* Search Bar */}
-            <div className="max-w-2xl mx-auto lg:mx-0">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search for your favorite dishes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm text-base placeholder-slate-400"
-                />
+          {/* Content - Adjusted for keyboard visibility */}
+          <div 
+            className={`p-4 lg:p-8 space-y-8 transition-all duration-300 ${
+              isKeyboardVisible && searchFocused ? 'pb-[50vh]' : ''
+            }`}
+          >
+            {/* Welcome Section - Hide when searching on mobile */}
+            {!(searchFocused && isKeyboardVisible) && (
+              <div className="text-center lg:text-left">
+                <h2 className="text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
+                  Welcome to Our Kitchen
+                </h2>
+                <p className="text-slate-600 text-lg">Discover amazing flavors crafted with love</p>
               </div>
-            </div>
+            )}
 
-            {/* Categories */}
-            <div>
+            {/* Categories - Compact view when keyboard is visible */}
+            <div className={searchFocused && isKeyboardVisible ? 'hidden' : ''}>
               <h3 className="text-xl font-semibold text-slate-800 mb-4">Categories</h3>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {/* Popular Button */}
                 <button
                   onClick={() => setSelectedCategory('popular')}
                   className={`flex items-center gap-2 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-200 min-w-max font-medium ${
@@ -945,7 +1097,9 @@ const HomePage = () => {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-slate-800">
-                  {selectedCategory === 'all' ? 'All Dishes' : categories.find(c => c.id === selectedCategory)?.name}
+                  {searchQuery ? `Search: "${searchQuery}"` : 
+                   selectedCategory === 'all' ? 'All Dishes' : 
+                   categories.find(c => c.id === selectedCategory)?.name}
                 </h3>
                 <span className="text-slate-500 text-sm">{filteredProducts.length} items</span>
               </div>
@@ -957,6 +1111,7 @@ const HomePage = () => {
                     className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-slate-100 hover:border-blue-200 transform hover:-translate-y-1"
                     onClick={() => setSelectedProduct(product)}
                   >
+                    {/* Product card content remains the same */}
                     {product.image ? (
                       <>
                         <div className="relative overflow-hidden">
@@ -1030,10 +1185,10 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Right Side Cart - Desktop Only - Fixed position */}
+        {/* Right Side Cart - Desktop Only */}
         <div className="hidden lg:block fixed right-0 top-0 w-[320px] h-screen bg-white border-l border-slate-200 shadow-xl z-20">
           <Cart 
-            onClose={null} // No close button needed for fixed sidebar
+            onClose={null}
             isMobile={false}
           />
         </div>

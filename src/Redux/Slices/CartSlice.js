@@ -2,7 +2,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from '../axiosInstance';
 
-const API_BASE = 'https://api.princebakery.shop/api';
+const API_BASE = 'http://0.0.0.0:8000/api';
 
 const getTokenHeader = () => {
   const token = localStorage.getItem('access');

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import Login from './Pages/Login';
 import HomePage from './Pages/HomePage';
+import Orders from './Pages/Orders';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -64,6 +65,15 @@ const App = () => {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/orders" 
+          element={
+            <ProtectedRoute>
+              <Orders />
             </ProtectedRoute>
           } 
         />

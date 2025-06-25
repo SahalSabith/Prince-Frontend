@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = 'https://api.princebakery.shop/api';
+const baseURL = 'http://0.0.0.0:8000/api';
 
 const axiosInstance = axios.create({
   baseURL,
